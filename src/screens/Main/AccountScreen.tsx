@@ -1,0 +1,115 @@
+import React from 'react';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text, Avatar, Button, Card } from 'react-native-paper';
+import { useAuth } from '../../contexts/AuthContext';
+import { LoadingScreen } from '../../components/LoadingScreen';
+
+interface AccountScreenProps {
+  navigation: any;
+}
+
+export const AccountScreen: React.FC<AccountScreenProps> = ({ navigation }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingScreen message="Carregando perfil..." />;
+  }
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <Text>Usuário não autenticado</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.container}>
+      <View style={styles.profileHeader}>
+        <Avatar.Image size={100} source={{ uri: user.avatar_url }} />
+        <Text variant="headlineSmall" style={styles.name}>
+          {user.name}
+        </Text>
+        <Text variant="bodyMedium">@{user.username}</Text>
+        {user.city && <Text variant="bodySmall">{user.city}</Text>}
+      </View>
+
+      <View style={styles.statsContainer}>
+        <Card style={styles.statCard}>
+          <Card.Content style={styles.statContent}>
+            <Text variant="headlineSmall">0</Text>
+            <Text variant="bodySmall">Eventos Criados</Text>
+          </Card.Content>
+        </Card>
+
+        <Card style={styles.statCard}>
+          <Card.Content style={styles.statContent}>
+            <Text variant="headlineSmall">0</Text>
+            <Text variant="bodySmall">Participações</Text>
+          </Card.Content>
+        </Card>
+
+        <Card style={styles.statCard}>
+          <Card.Content style={styles.statContent}>
+            <Text variant="headlineSmall">0</Text>
+            <Text variant="bodySmall">Amigos</Text>
+          </Card.Content>
+        </Card>
+      </View>
+
+      <View style={styles.actionsContainer}>
+        <Button
+          mode="contained"
+          onPress={() => navigation.navigate('Settings')}
+          style={styles.button}
+        >
+          Editar Perfil
+        </Button>
+
+        <Button
+          mode="outlined"
+          onPress={() => navigation.navigate('Settings')}
+          style={styles.button}
+        >
+          Configurações
+        </Button>
+      </View>
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  profileHeader: {
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  name: {
+    marginTop: 12,
+    fontWeight: 'bold',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    padding: 12,
+    justifyContent: 'space-between',
+  },
+  statCard: {
+    flex: 1,
+    marginHorizontal: 6,
+  },
+  statContent: {
+    alignItems: 'center',
+  },
+  actionsContainer: {
+    padding: 20,
+  },
+  button: {
+    marginBottom: 12,
+  },
+});
