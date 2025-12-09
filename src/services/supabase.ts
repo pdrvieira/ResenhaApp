@@ -45,6 +45,7 @@ export interface User {
   username: string;
   avatar_url?: string;
   city?: string;
+  notifications_enabled?: boolean;
   onboarding_complete: boolean;
   created_at: string;
   updated_at: string;

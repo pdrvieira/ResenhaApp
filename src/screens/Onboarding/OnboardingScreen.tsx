@@ -56,6 +56,40 @@ export const OnboardingScreen: React.FC = () => {
     setError(null);
   };
 
+  const uploadPhoto = async (uri: string, userId: string): Promise<string | null> => {
+    try {
+      const ext = uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${userId}/avatar_${Date.now()}.${ext}`;
+
+      // Workaround for React Native + Supabase Storage upload
+      // Reads the file uri into a blob/buffer using fetch
+      const result = await fetch(uri);
+      const blob = await result.blob();
+      const arrayBuffer = await new Response(blob).arrayBuffer();
+
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, arrayBuffer, {
+          contentType: `image/${ext}`,
+          upsert: false,
+        });
+
+      if (error) {
+        console.error('❌ Erro no upload da foto:', error);
+        return null; // Falha silenciosa na foto, não bloqueia o fluxo
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('❌ Exceção no upload da foto:', error);
+      return null;
+    }
+  };
+
   const handleStep4 = async (preferences: { notificationsEnabled: boolean }) => {
     try {
       setLoading(true);
@@ -72,24 +106,33 @@ export const OnboardingScreen: React.FC = () => {
         throw new Error('Cidade é obrigatória');
       }
 
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
       console.log('✅ Finalizando onboarding com dados:', {
         name: onboardingData.name,
         username: onboardingData.username,
         city: onboardingData.city,
       });
 
+      let avatarUrl = null;
+      if (onboardingData.photoUri) {
+        console.log('📸 Iniciando upload da foto...');
+        avatarUrl = await uploadPhoto(onboardingData.photoUri, user.id);
+      }
+
       // Atualizar perfil do usuário
       await updateProfile({
         name: onboardingData.name.trim(),
         username: onboardingData.username.trim(),
         city: onboardingData.city.trim(),
+        notifications_enabled: preferences.notificationsEnabled,
         onboarding_complete: true,
+        ...(avatarUrl && { avatar_url: avatarUrl }),
       });
 
       console.log('✅ Onboarding concluído com sucesso!');
-      
-      // TODO: Upload de foto se fornecida
-      // TODO: Salvar preferências de notificação
 
       // Marcar onboarding como completo localmente
       setOnboardingData((prev) => ({
@@ -98,8 +141,7 @@ export const OnboardingScreen: React.FC = () => {
       }));
 
       // O RootNavigator deve detectar a mudança automaticamente e navegar
-      // Mas garantimos que o estado foi atualizado
-      
+
     } catch (error: any) {
       console.error('❌ Erro ao finalizar onboarding:', error);
       const errorMessage = error?.message || 'Erro ao finalizar onboarding. Tente novamente.';

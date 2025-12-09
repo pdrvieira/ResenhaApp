@@ -15,35 +15,43 @@ export const OnboardingStep1: React.FC<OnboardingStep1Props> = ({ onNext, loadin
   const handleNext = () => {
     setError('');
 
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+    const trimmedUsername = username.trim();
+
+    if (!trimmedName) {
       setError('Nome é obrigatório');
       return;
     }
 
-    if (!username.trim()) {
+    if (!trimmedUsername) {
       setError('Username é obrigatório');
       return;
     }
 
-    if (username.length < 3) {
+    if (trimmedUsername.length < 3) {
       setError('Username deve ter pelo menos 3 caracteres');
       return;
     }
 
-    onNext({ name: name.trim(), username: username.trim() });
+    // Regex: Letters, numbers, underscores, dots. No spaces.
+    const usernameRegex = /^[a-zA-Z0-9_.]+$/;
+    if (!usernameRegex.test(trimmedUsername)) {
+      setError('Username deve conter apenas letras, números, ponto ou underline.');
+      return;
+    }
+
+    onNext({ name: trimmedName, username: trimmedUsername });
   };
 
   return (
     <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text variant="labelLarge" style={styles.stepIndicator}>Passo 1 de 4</Text>
+        <Text variant="headlineMedium" style={styles.title}>Vamos começar!</Text>
+        <Text variant="bodyMedium" style={styles.subtitle}>Como você quer ser chamado no Resenha?</Text>
+      </View>
+
       <View style={styles.content}>
-        <Text variant="headlineSmall" style={styles.title}>
-          Vamos começar!
-        </Text>
-
-        <Text style={styles.subtitle}>
-          Qual é o seu nome?
-        </Text>
-
         <TextInput
           label="Nome Completo"
           value={name}
@@ -51,11 +59,8 @@ export const OnboardingStep1: React.FC<OnboardingStep1Props> = ({ onNext, loadin
           placeholder="Ex: João Silva"
           style={styles.input}
           editable={!loading}
+          mode="outlined"
         />
-
-        <Text style={styles.subtitle}>
-          Escolha um username único
-        </Text>
 
         <TextInput
           label="Username"
@@ -65,6 +70,7 @@ export const OnboardingStep1: React.FC<OnboardingStep1Props> = ({ onNext, loadin
           autoCapitalize="none"
           style={styles.input}
           editable={!loading}
+          mode="outlined"
         />
 
         {error && <Text style={styles.error}>{error}</Text>}
@@ -75,6 +81,7 @@ export const OnboardingStep1: React.FC<OnboardingStep1Props> = ({ onNext, loadin
           loading={loading}
           disabled={loading}
           style={styles.button}
+          contentStyle={{ height: 48 }}
         >
           Próximo
         </Button>
@@ -88,30 +95,41 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  header: {
+    paddingTop: 40,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
   content: {
     padding: 20,
-    justifyContent: 'center',
-    minHeight: '100%',
+    paddingTop: 0,
+    flex: 1,
+  },
+  stepIndicator: {
+    color: '#666',
+    marginBottom: 8,
+    fontWeight: '600',
   },
   title: {
-    textAlign: 'center',
-    marginBottom: 40,
     fontWeight: 'bold',
+    marginBottom: 8,
   },
   subtitle: {
+    color: '#666',
     fontSize: 14,
-    marginBottom: 12,
-    fontWeight: '500',
   },
   input: {
-    marginBottom: 24,
+    marginBottom: 16,
+    backgroundColor: '#fff',
   },
   button: {
-    marginTop: 20,
+    marginTop: 24,
+    borderRadius: 8,
   },
   error: {
     color: '#d32f2f',
     marginBottom: 12,
     textAlign: 'center',
+    fontWeight: 'bold',
   },
 });
