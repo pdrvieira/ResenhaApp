@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Keyboard } from 'react-native';
-import { TextInput, Button, Text, Snackbar } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Keyboard, Alert } from 'react-native';
+import { TextInput, Button, Text, Snackbar, HelperText } from 'react-native-paper';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
@@ -10,35 +10,73 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [error, setError] = useState('');
   const { signUp, loading } = useAuth();
 
+  const isValidEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
   const handleSignup = async () => {
     Keyboard.dismiss();
     setError('');
 
-    if (password !== confirmPassword) {
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim(); // Ensure password is also trimmed of accidental spaces
+
+    if (!trimmedEmail || !trimmedPassword || !confirmPassword) {
+      setError('Por favor, preencha todos os campos');
+      return;
+    }
+
+    if (!isValidEmail(trimmedEmail)) {
+      setError('Por favor, insira um email válido');
+      return;
+    }
+
+    if (trimmedPassword !== confirmPassword) {
       setError('As senhas não conferem');
       return;
     }
 
-    if (password.length < 6) {
+    if (trimmedPassword.length < 6) {
       setError('A senha deve ter pelo menos 6 caracteres');
       return;
     }
 
-    const { error: signUpError } = await signUp(email.trim(), password);
+    const { error: signUpError, session } = await signUp(trimmedEmail, trimmedPassword);
+
     if (signUpError) {
       setError(signUpError);
+      return;
     }
-    // Após signup bem-sucedido, o usuário será redirecionado para onboarding
+
+    // Se não houver erro e não houver sessão, significa que o email de confirmação foi enviado
+    if (!session) {
+      Alert.alert(
+        'Verifique seu email',
+        'Enviamos um link de confirmação para o seu email. Por favor, confirme para continuar.',
+        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+      );
+    }
+    // Se houver sessão, o AuthContext atualiza o estado e o RootNavigator redireciona automaticamente
+  };
+
+  const hasPasswordError = () => {
+    return password.length > 0 && password.length < 6;
   };
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.formContent}>
+        <View style={styles.header}>
+          <Text variant="labelLarge" style={styles.stepIndicator}>Passo 1 de 2</Text>
           <Text variant="headlineMedium" style={styles.title}>
-            Criar Conta
+            Crie sua conta
           </Text>
+          <Text variant="bodyMedium" style={styles.subtitle}>
+            Insira seus dados para começar a usar o Resenha!
+          </Text>
+        </View>
 
+        <View style={styles.formContent}>
           <TextInput
             label="Email"
             value={email}
@@ -47,6 +85,7 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             autoCapitalize="none"
             style={styles.input}
             editable={!loading}
+            mode="outlined"
           />
 
           <TextInput
@@ -56,7 +95,12 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             secureTextEntry
             style={styles.input}
             editable={!loading}
+            mode="outlined"
+            error={hasPasswordError()}
           />
+          <HelperText type="info" visible={true} padding="none" style={styles.helperText}>
+            Mínimo de 6 caracteres
+          </HelperText>
 
           <TextInput
             label="Confirmar Senha"
@@ -65,6 +109,7 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             secureTextEntry
             style={styles.input}
             editable={!loading}
+            mode="outlined"
           />
 
           <Button
@@ -73,14 +118,20 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             loading={loading}
             disabled={loading}
             style={styles.button}
+            contentStyle={{ height: 48 }}
           >
-            Criar Conta
+            Continuar
           </Button>
+
+          <Text style={styles.legalText}>
+            Ao continuar, você concorda com nossos Termos de Serviço e Política de Privacidade.
+          </Text>
 
           <Button
             mode="text"
             onPress={() => navigation.navigate('Login')}
             disabled={loading}
+            style={styles.loginButton}
           >
             Já tenho conta
           </Button>
@@ -107,22 +158,51 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
-  formContent: {
-    padding: 20,
-    justifyContent: 'center',
-    flex: 1,
+  header: {
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: '#fff', // Keep header background consistent
+  },
+  stepIndicator: {
+    color: '#666',
+    marginBottom: 8,
+    fontWeight: '600',
   },
   title: {
-    textAlign: 'center',
-    marginBottom: 40,
     fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: '#666',
+  },
+  formContent: {
+    padding: 20,
+    paddingTop: 10,
+    justifyContent: 'flex-start',
+    flex: 1,
   },
   input: {
-    marginBottom: 16,
+    marginBottom: 4, // Reduced margin because helper text takes space or is controlled separately
+    backgroundColor: '#fff',
+  },
+  helperText: {
+    marginBottom: 12,
   },
   button: {
-    marginTop: 20,
-    marginBottom: 12,
+    marginTop: 24,
+    marginBottom: 16,
+    borderRadius: 8,
+  },
+  loginButton: {
+    marginTop: 8,
+  },
+  legalText: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 18,
   },
   snackbar: {
     backgroundColor: '#d32f2f',

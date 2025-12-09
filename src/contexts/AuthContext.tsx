@@ -8,7 +8,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: string | null; session?: Session | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
@@ -23,6 +23,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // ... (ensureUserRecord and useEffect remain unchanged) ...
+
   /**
    * Garante que o usuário exista na tabela public.users.
    * Cria o registro se não existir e retorna o perfil completo.
@@ -33,6 +35,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     sessionUser: { id: string; email?: string | null } | null,
     emailFallback?: string
   ): Promise<User | null> => {
+    // ... implementation logic ...
     if (!sessionUser?.id) {
       console.warn('⚠️ ensureUserRecord chamado sem sessionUser válido');
       return null;
@@ -278,7 +281,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       setSession(data.session ?? null);
 
-      return { error: null };
+      return { error: null, session: data.session };
     } catch (error: any) {
       setLoading(false);
       console.error('❌ Erro completo no signUp:', error);
