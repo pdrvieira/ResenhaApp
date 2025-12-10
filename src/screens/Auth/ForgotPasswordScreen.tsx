@@ -7,7 +7,8 @@ export const ForgotPasswordScreen: React.FC<{ navigation: any }> = ({ navigation
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const { resetPassword, loading } = useAuth(); // Use context instead of direct import
+  const [loading, setLoading] = useState(false);
+  const { resetPassword } = useAuth(); // Use context instead of direct import
 
   const handleResetPassword = async () => {
     Keyboard.dismiss();
@@ -19,7 +20,9 @@ export const ForgotPasswordScreen: React.FC<{ navigation: any }> = ({ navigation
       return;
     }
 
+    setLoading(true);
     const { error: resetError } = await resetPassword(email);
+    setLoading(false);
 
     if (resetError) {
       setError(resetError);

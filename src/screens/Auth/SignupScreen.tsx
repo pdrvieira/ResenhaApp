@@ -8,7 +8,8 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const { signUp, loading } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const { signUp } = useAuth(); // Removed context loading
 
   const isValidEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -41,7 +42,9 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       return;
     }
 
+    setLoading(true);
     const { error: signUpError, session } = await signUp(trimmedEmail, trimmedPassword);
+    setLoading(false);
 
     if (signUpError) {
       setError(signUpError);

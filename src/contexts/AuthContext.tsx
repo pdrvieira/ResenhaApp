@@ -311,8 +311,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    setLoading(true);
-
     try {
       console.log('📝 Criando conta para:', email);
 
@@ -320,8 +318,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email: email.trim(),
         password,
       });
-
-      setLoading(false);
 
       if (error) {
         console.log('🔸 Falha no cadastro (esperado):', error.message);
@@ -344,15 +340,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       return { error: null, session: data.session };
     } catch (error: any) {
-      setLoading(false);
       console.error('❌ Erro completo no signUp:', error);
       return { error: translateSupabaseError(error.message || 'Erro ao criar conta') };
     }
   };
 
   const signIn = async (email: string, password: string) => {
-    setLoading(true);
-
     try {
       console.log('🔐 Tentando fazer login para:', email);
 
@@ -360,8 +353,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email: email.trim(),
         password,
       });
-
-      setLoading(false);
 
       if (error) {
         console.log('🔸 Falha no login (esperado):', error.message);
@@ -383,19 +374,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       return { error: null };
     } catch (error: any) {
-      setLoading(false);
       console.error('❌ Erro completo no login:', error);
       return { error: translateSupabaseError(error.message || 'Erro ao fazer login') };
     }
   };
 
   const signOut = async () => {
-    setLoading(true);
-
     try {
       const { error } = await supabase.auth.signOut();
-
-      setLoading(false);
 
       if (error) {
         console.error('❌ Erro ao deslogar:', error);
@@ -405,19 +391,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(null);
       }
     } catch (error) {
-      setLoading(false);
       throw error;
     }
   };
 
   const resetPassword = async (email: string) => {
-    setLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: 'resenha://reset-password',
       });
-
-      setLoading(false);
 
       if (error) {
         return { error: translateSupabaseError(error.message) };
@@ -425,7 +407,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       return { error: null };
     } catch (error: any) {
-      setLoading(false);
       return { error: translateSupabaseError(error.message || 'Erro ao enviar email') };
     }
   };

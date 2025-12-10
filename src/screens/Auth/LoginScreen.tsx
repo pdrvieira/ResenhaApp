@@ -7,12 +7,23 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { signIn, loading } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const { signIn } = useAuth(); // Removed context loading
 
   const handleLogin = async () => {
     Keyboard.dismiss();
     setError('');
-    const { error } = await signIn(email.trim(), password);
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
+      setError('Por favor, preencha email e senha');
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await signIn(trimmedEmail, password);
+    setLoading(false);
+
     if (error) {
       setError(error);
     }
@@ -21,11 +32,16 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.formContent}>
+        <View style={styles.header}>
           <Text variant="headlineMedium" style={styles.title}>
-            Resenha!
+            Bem-vindo de volta!
           </Text>
+          <Text variant="bodyMedium" style={styles.subtitle}>
+            Entre para continuar a resenha.
+          </Text>
+        </View>
 
+        <View style={styles.formContent}>
           <TextInput
             label="Email"
             value={email}
@@ -34,6 +50,7 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             autoCapitalize="none"
             style={styles.input}
             editable={!loading}
+            mode="outlined"
           />
 
           <TextInput
@@ -43,6 +60,7 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             secureTextEntry
             style={styles.input}
             editable={!loading}
+            mode="outlined"
           />
 
           <Button
@@ -51,6 +69,7 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             loading={loading}
             disabled={loading}
             style={styles.button}
+            contentStyle={{ height: 48 }}
           >
             Entrar
           </Button>
@@ -59,14 +78,16 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             mode="text"
             onPress={() => navigation.navigate('Signup')}
             disabled={loading}
+            style={styles.textButton}
           >
-            Criar Conta
+            Ainda não tem conta? Cadastre-se
           </Button>
 
           <Button
             mode="text"
             onPress={() => navigation.navigate('ForgotPassword')}
             disabled={loading}
+            style={styles.textButton}
           >
             Esqueci minha senha
           </Button>
@@ -93,22 +114,35 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
+  header: {
+    paddingTop: 80,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: '#fff',
+  },
   formContent: {
     padding: 20,
-    justifyContent: 'center',
+    paddingTop: 0,
     flex: 1,
   },
   title: {
-    textAlign: 'center',
-    marginBottom: 40,
     fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: '#666',
   },
   input: {
     marginBottom: 16,
+    backgroundColor: '#fff',
   },
   button: {
-    marginTop: 20,
-    marginBottom: 12,
+    marginTop: 12,
+    marginBottom: 24,
+    borderRadius: 8,
+  },
+  textButton: {
+    marginBottom: 8,
   },
   snackbar: {
     backgroundColor: '#d32f2f',
