@@ -8,10 +8,13 @@ export const ResetPasswordScreen: React.FC = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const { updateProfile, setIsPasswordReset, signOut } = useAuth(); // We just need access to supabase client really
     const { supabase } = require('../../services/supabase');
 
     const handleUpdatePassword = async () => {
+        // ... existing logic ...
         setError('');
 
         if (password.length < 6) {
@@ -66,18 +69,30 @@ export const ResetPasswordScreen: React.FC = () => {
                         label="Nova Senha"
                         value={password}
                         onChangeText={setPassword}
-                        secureTextEntry
+                        secureTextEntry={!showPassword}
                         mode="outlined"
                         style={styles.input}
+                        right={
+                            <TextInput.Icon
+                                icon={showPassword ? "eye-off" : "eye"}
+                                onPress={() => setShowPassword(!showPassword)}
+                            />
+                        }
                     />
 
                     <TextInput
                         label="Confirmar Senha"
                         value={confirmPassword}
                         onChangeText={setConfirmPassword}
-                        secureTextEntry
+                        secureTextEntry={!showConfirmPassword}
                         mode="outlined"
                         style={styles.input}
+                        right={
+                            <TextInput.Icon
+                                icon={showConfirmPassword ? "eye-off" : "eye"}
+                                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                            />
+                        }
                     />
 
                     <Button

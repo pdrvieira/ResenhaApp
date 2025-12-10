@@ -345,12 +345,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (identifier: string, password: string) => {
     try {
-      console.log('🔐 Tentando fazer login para:', email);
+      console.log('🔐 Tentando fazer login para:', identifier);
+
+      let emailToSignIn = identifier.trim();
+
+      // Check if input is a username (no @ symbol)
+      if (!emailToSignIn.includes('@')) {
+        console.log('👤 Detectado username, buscando email...');
+        const { data: emailData, error: lookupError } = await supabase
+          .rpc('get_email_by_username', { username_input: emailToSignIn });
+
+        if (lookupError || !emailData) {
+          console.warn('❌ Erro ao buscar email por username:', lookupError);
+          // Return generic error to avoid enumeration
+          return { error: 'Usuário ou senha incorretos.' };
+        }
+
+        emailToSignIn = emailData;
+        console.log('✅ Email encontrado para o username:', emailToSignIn);
+      }
 
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: emailToSignIn,
         password,
       });
 
@@ -365,7 +383,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // Buscar dados do usuário
       if (data.user) {
-        const profile = await ensureUserRecord(data.user, email.trim());
+        const profile = await ensureUserRecord(data.user, emailToSignIn);
         if (profile) {
           console.log('✅ Perfil do usuário carregado:', profile.email);
           setUser(profile);

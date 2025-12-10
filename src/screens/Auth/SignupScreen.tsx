@@ -9,18 +9,19 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signUp } = useAuth(); // Removed context loading
 
-  const isValidEmail = (email: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
+  // ... (isValidEmail remains) ...
 
   const handleSignup = async () => {
+    // ... existing logic ...
     Keyboard.dismiss();
     setError('');
 
     const trimmedEmail = email.trim();
-    const trimmedPassword = password.trim(); // Ensure password is also trimmed of accidental spaces
+    const trimmedPassword = password.trim();
 
     if (!trimmedEmail || !trimmedPassword || !confirmPassword) {
       setError('Por favor, preencha todos os campos');
@@ -59,16 +60,20 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
       );
     }
-    // Se houver sessão, o AuthContext atualiza o estado e o RootNavigator redireciona automaticamente
   };
 
   const hasPasswordError = () => {
     return password.length > 0 && password.length < 6;
   };
 
+  const isValidEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* ... Header ... */}
         <View style={styles.header}>
           <Text variant="labelLarge" style={styles.stepIndicator}>Passo 1 de 2</Text>
           <Text variant="headlineMedium" style={styles.title}>
@@ -95,11 +100,17 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             label="Senha"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry
+            secureTextEntry={!showPassword}
             style={styles.input}
             editable={!loading}
             mode="outlined"
             error={hasPasswordError()}
+            right={
+              <TextInput.Icon
+                icon={showPassword ? "eye-off" : "eye"}
+                onPress={() => setShowPassword(!showPassword)}
+              />
+            }
           />
           <HelperText type="info" visible={true} padding="none" style={styles.helperText}>
             Mínimo de 6 caracteres
@@ -109,10 +120,16 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             label="Confirmar Senha"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
-            secureTextEntry
+            secureTextEntry={!showConfirmPassword}
             style={styles.input}
             editable={!loading}
             mode="outlined"
+            right={
+              <TextInput.Icon
+                icon={showConfirmPassword ? "eye-off" : "eye"}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              />
+            }
           />
 
           <Button

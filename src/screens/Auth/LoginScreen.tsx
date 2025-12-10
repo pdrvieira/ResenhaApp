@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Keyboard } from 'react-native';
-import { TextInput, Button, Text, Snackbar } from 'react-native-paper';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, Keyboard, TouchableOpacity } from 'react-native';
+import { TextInput, Button, Text, Snackbar, Checkbox } from 'react-native-paper';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
@@ -8,7 +9,25 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
   const { signIn } = useAuth(); // Removed context loading
+
+  useEffect(() => {
+    const loadSavedEmail = async () => {
+      try {
+        const savedEmail = await AsyncStorage.getItem('saved_email');
+        if (savedEmail) {
+          setEmail(savedEmail);
+          setRememberMe(true);
+        }
+      } catch (e) {
+        console.log('Failed to load email', e);
+      }
+    };
+    loadSavedEmail();
+  }, []);
 
   const handleLogin = async () => {
     Keyboard.dismiss();
@@ -16,7 +35,7 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password) {
-      setError('Por favor, preencha email e senha');
+      setError('Por favor, preencha seu login e senha');
       return;
     }
 
@@ -26,6 +45,17 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
     if (error) {
       setError(error);
+    } else {
+      // Save or clear email based on rememberMe
+      try {
+        if (rememberMe) {
+          await AsyncStorage.setItem('saved_email', trimmedEmail);
+        } else {
+          await AsyncStorage.removeItem('saved_email');
+        }
+      } catch (e) {
+        console.log('Failed to save email', e);
+      }
     }
   };
 
@@ -43,10 +73,9 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
         <View style={styles.formContent}>
           <TextInput
-            label="Email"
+            label="Email ou Usuário"
             value={email}
             onChangeText={setEmail}
-            keyboardType="email-address"
             autoCapitalize="none"
             style={styles.input}
             editable={!loading}
@@ -57,11 +86,33 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             label="Senha"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry
+            secureTextEntry={!showPassword}
             style={styles.input}
             editable={!loading}
             mode="outlined"
+            right={
+              <TextInput.Icon
+                icon={showPassword ? "eye-off" : "eye"}
+                onPress={() => setShowPassword(!showPassword)}
+              />
+            }
           />
+
+          <View style={styles.rememberRow}>
+            <View style={styles.checkboxContainer}>
+              <Checkbox.Android
+                status={rememberMe ? 'checked' : 'unchecked'}
+                onPress={() => setRememberMe(!rememberMe)}
+                color="#6200ee"
+              />
+              <TouchableOpacity onPress={() => setRememberMe(!rememberMe)}>
+                <Text variant="bodyMedium">Lembrar de mim</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+              <Text variant="bodyMedium" style={styles.forgotLink}>Esqueci minha senha</Text>
+            </TouchableOpacity>
+          </View>
 
           <Button
             mode="contained"
@@ -83,14 +134,6 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             Ainda não tem conta? Cadastre-se
           </Button>
 
-          <Button
-            mode="text"
-            onPress={() => navigation.navigate('ForgotPassword')}
-            disabled={loading}
-            style={styles.textButton}
-          >
-            Esqueci minha senha
-          </Button>
         </View>
       </ScrollView>
 
@@ -136,8 +179,23 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     backgroundColor: '#fff',
   },
+  rememberRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: -8, // Compensate for Checkbox default padding
+  },
+  forgotLink: {
+    color: '#6200ee',
+    fontWeight: '600',
+  },
   button: {
-    marginTop: 12,
+    marginTop: 0,
     marginBottom: 24,
     borderRadius: 8,
   },
