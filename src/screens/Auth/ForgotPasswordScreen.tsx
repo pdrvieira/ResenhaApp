@@ -1,93 +1,93 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { TextInput, Button, Text } from 'react-native-paper';
-import { supabase } from '../../services/supabase';
+import { View, StyleSheet, ScrollView, Alert, Keyboard } from 'react-native';
+import { TextInput, Button, Text, Snackbar } from 'react-native-paper';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const ForgotPasswordScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const { resetPassword, loading } = useAuth(); // Use context instead of direct import
 
   const handleResetPassword = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      setSuccess(false);
+    Keyboard.dismiss();
+    setError('');
+    setSuccess(false);
 
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'resenha://reset-password',
-      });
+    if (!email.trim()) {
+      setError('Por favor, informe seu email');
+      return;
+    }
 
-      if (resetError) throw resetError;
+    const { error: resetError } = await resetPassword(email);
 
+    if (resetError) {
+      setError(resetError);
+    } else {
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || 'Erro ao enviar email de recuperação');
-    } finally {
-      setLoading(false);
+      Alert.alert(
+        'Email Enviado',
+        'Verifique sua caixa de entrada para redefinir sua senha.',
+        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+      );
     }
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text variant="headlineMedium" style={styles.title}>
-          Recuperar Senha
-        </Text>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <Text variant="headlineMedium" style={styles.title}>
+            Recuperar Senha
+          </Text>
+          <Text variant="bodyMedium" style={styles.subtitle}>
+            Não se preocupe! Digite seu email abaixo e enviaremos um link de recuperação.
+          </Text>
+        </View>
 
-        {success ? (
-          <>
-            <Text style={styles.successText}>
-              Email de recuperação enviado! Verifique sua caixa de entrada.
-            </Text>
-            <Button
-              mode="contained"
-              onPress={() => navigation.navigate('Login')}
-              style={styles.button}
-            >
-              Voltar ao Login
-            </Button>
-          </>
-        ) : (
-          <>
-            <Text style={styles.description}>
-              Digite seu email para receber um link de recuperação de senha.
-            </Text>
+        <View style={styles.content}>
+          <TextInput
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            style={styles.input}
+            editable={!loading && !success}
+            mode="outlined"
+          />
 
-            <TextInput
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              style={styles.input}
-              editable={!loading}
-            />
+          <Button
+            mode="contained"
+            onPress={handleResetPassword}
+            loading={loading}
+            disabled={loading || success}
+            style={styles.button}
+            contentStyle={{ height: 48 }}
+          >
+            Enviar Email
+          </Button>
 
-            {error && <Text style={styles.error}>{error}</Text>}
+          <Button
+            mode="text"
+            onPress={() => navigation.navigate('Login')}
+            disabled={loading}
+            style={styles.backButton}
+          >
+            Voltar ao Login
+          </Button>
+        </View>
+      </ScrollView>
 
-            <Button
-              mode="contained"
-              onPress={handleResetPassword}
-              loading={loading}
-              disabled={loading}
-              style={styles.button}
-            >
-              Enviar Email
-            </Button>
-
-            <Button
-              mode="text"
-              onPress={() => navigation.navigate('Login')}
-              disabled={loading}
-            >
-              Voltar ao Login
-            </Button>
-          </>
-        )}
-      </View>
-    </ScrollView>
+      <Snackbar
+        visible={!!error}
+        onDismiss={() => setError('')}
+        duration={3000}
+        style={styles.snackbar}
+      >
+        <Text style={{ color: '#fff' }}>{error}</Text>
+      </Snackbar>
+    </View>
   );
 };
 
@@ -96,37 +96,42 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  content: {
-    padding: 20,
-    justifyContent: 'center',
-    minHeight: '100%',
+  scrollContent: {
+    flexGrow: 1,
+  },
+  header: {
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: '#fff',
   },
   title: {
-    textAlign: 'center',
-    marginBottom: 40,
     fontWeight: 'bold',
+    marginBottom: 8,
   },
-  description: {
-    textAlign: 'center',
-    marginBottom: 24,
-    fontSize: 14,
+  subtitle: {
+    color: '#666',
+    lineHeight: 20,
+  },
+  content: {
+    padding: 20,
+    paddingTop: 10,
+    flex: 1,
   },
   input: {
-    marginBottom: 16,
+    marginBottom: 20,
+    backgroundColor: '#fff',
   },
   button: {
-    marginTop: 20,
-    marginBottom: 12,
+    marginBottom: 16,
+    borderRadius: 8,
   },
-  error: {
-    color: '#d32f2f',
-    marginBottom: 12,
-    textAlign: 'center',
+  backButton: {
+    marginTop: 0,
   },
-  successText: {
-    color: '#388e3c',
-    textAlign: 'center',
-    marginBottom: 24,
-    fontSize: 14,
+  snackbar: {
+    backgroundColor: '#d32f2f',
+    zIndex: 1000,
+    elevation: 1000,
   },
 });

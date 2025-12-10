@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAppControl } from '../contexts/AppControlContext';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { AuthNavigator } from './AuthNavigator';
+import { ResetPasswordScreen } from '../screens/Auth/ResetPasswordScreen';
 import { OnboardingNavigator } from './OnboardingNavigator';
 import { MainNavigator } from './MainNavigator';
 import { WalkthroughNavigator } from './WalkthroughNavigator';
@@ -11,7 +12,7 @@ import { WalkthroughNavigator } from './WalkthroughNavigator';
 const Stack = createNativeStackNavigator();
 
 export const RootNavigator: React.FC = () => {
-  const { isAuthenticated, onboardingComplete, loading: authLoading, user } = useAuth();
+  const { isAuthenticated, onboardingComplete, loading: authLoading, user, isPasswordReset } = useAuth();
   const { isFirstLaunch, loading: appLoading } = useAppControl();
 
   const loading = authLoading || appLoading;
@@ -23,9 +24,10 @@ export const RootNavigator: React.FC = () => {
       onboardingComplete,
       loading,
       isFirstLaunch,
+      isPasswordReset,
       userId: user?.id,
     });
-  }, [isAuthenticated, onboardingComplete, loading, user, isFirstLaunch]);
+  }, [isAuthenticated, onboardingComplete, loading, user, isFirstLaunch, isPasswordReset]);
 
   if (loading) {
     return <LoadingScreen message="Inicializando..." />;
@@ -37,7 +39,9 @@ export const RootNavigator: React.FC = () => {
         headerShown: false,
       }}
     >
-      {isFirstLaunch ? (
+      {isPasswordReset ? (
+        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+      ) : isFirstLaunch ? (
         <Stack.Screen name="Walkthrough" component={WalkthroughNavigator} />
       ) : !isAuthenticated ? (
         <Stack.Screen name="Auth" component={AuthNavigator} />

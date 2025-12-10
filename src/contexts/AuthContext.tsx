@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { Linking } from 'react-native';
 import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase, User } from '../services/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -11,9 +12,12 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: string | null; session?: Session | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
   isAuthenticated: boolean;
   onboardingComplete: boolean;
+  isPasswordReset: boolean;
+  setIsPasswordReset: (value: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,6 +26,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPasswordReset, setIsPasswordReset] = useState(false);
 
   // ... (ensureUserRecord and useEffect remain unchanged) ...
 
@@ -228,24 +233,80 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       console.log('🔄 Auth state changed:', _event, session?.user?.id);
 
-      // Se ainda não terminou o carregamento inicial, aguardar
+      if (_event === 'PASSWORD_RECOVERY') {
+        setIsPasswordReset(true);
+      }
+
       if (!initialLoadingComplete) {
-        return; // getInitialSession vai lidar com isso
+        return;
       }
-
-      // Para mudanças subsequentes, atualizar imediatamente
       await handleAuthState(session, false);
+      if (mounted) setLoading(false);
+    });
 
-      // Garantir que loading está false após mudanças
-      if (mounted) {
-        setLoading(false);
+    // Deep Link Listener Implementation
+    const handleDeepLink = async ({ url }: { url: string }) => {
+      console.log('🔗 Deep Link received:', url);
+
+      // Normalize URL for checking
+      const urlStr = url.toLowerCase();
+
+      // Check for Password Reset signals
+      // Matches: "reset-password", "type=recovery", "recovery"
+      if (urlStr.includes('reset-password') || urlStr.includes('type=recovery') || urlStr.includes('recovery')) {
+        console.log('🔓 Detection: Password Reset Mode Activated');
+        setIsPasswordReset(true);
       }
+
+      // Check for Supabase Auth tokens in URL (implicit or explicit)
+      // Standard format: resenha://reset-password#access_token=...&refresh_token=...&type=recovery
+      if (urlStr.includes('access_token')) {
+        try {
+          // Extract tokens securely (handling both # and ?)
+          const accessTokenMatch = url.match(/access_token=([^&]+)/);
+          const refreshTokenMatch = url.match(/refresh_token=([^&]+)/);
+
+          if (accessTokenMatch) {
+            const access_token = accessTokenMatch[1];
+            const refresh_token = refreshTokenMatch ? refreshTokenMatch[1] : '';
+
+            console.log('🎟️ Tokens found, setting session manually...');
+
+            // Note: refresh_token might be optional in some PKCE flows, but usually present.
+            // We pass what we have.
+            const { data, error } = await supabase.auth.setSession({
+              access_token,
+              refresh_token,
+            });
+
+            if (error) {
+              console.error('❌ Failed to set session from URL:', error);
+            } else {
+              console.log('✅ Session restored from Deep Link');
+              // Ensure reset mode is enforced if we just recovered a session
+              if (urlStr.includes('type=recovery')) {
+                setIsPasswordReset(true);
+              }
+            }
+          }
+        } catch (e) {
+          console.error('❌ Error handling deep link session:', e);
+        }
+      }
+    };
+
+    const linkingSubscription = Linking.addEventListener('url', handleDeepLink);
+
+    // Check initial URL (if app was closed)
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink({ url });
     });
 
     return () => {
       mounted = false;
       clearTimeout(loadingTimeout);
       subscription.unsubscribe();
+      linkingSubscription.remove();
     };
   }, []);
 
@@ -349,6 +410,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const resetPassword = async (email: string) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: 'resenha://reset-password',
+      });
+
+      setLoading(false);
+
+      if (error) {
+        return { error: translateSupabaseError(error.message) };
+      }
+
+      return { error: null };
+    } catch (error: any) {
+      setLoading(false);
+      return { error: translateSupabaseError(error.message || 'Erro ao enviar email') };
+    }
+  };
+
   const updateProfile = async (updates: Partial<User>) => {
     try {
       if (!user) {
@@ -395,9 +476,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     signIn,
     signUp,
     signOut,
+    resetPassword,
     updateProfile,
     isAuthenticated: !!user,
     onboardingComplete: user?.onboarding_complete || false,
+    isPasswordReset,
+    setIsPasswordReset,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
