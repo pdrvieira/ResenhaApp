@@ -8,5 +8,6 @@ export { ChatScreen } from './ChatScreen';
 export { AccountScreen } from './AccountScreen';
 export { SettingsScreen } from './SettingsScreen';
 export { ManageEventScreen } from './ManageEventScreen';
+export { EditEventScreen } from './EditEventScreen';
 export { MapScreen } from './MapScreen';
 export { MyEventsScreen } from './MyEventsScreen';

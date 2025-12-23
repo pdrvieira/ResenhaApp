@@ -225,6 +225,7 @@ export const ManageEventScreen: React.FC<ManageEventScreenProps> = ({ navigation
     }
 
     const eventDate = new Date(event.event_at);
+    const isPast = eventDate < new Date();
     const formattedDate = eventDate.toLocaleDateString('pt-BR', {
         weekday: 'short',
         day: '2-digit',
@@ -242,8 +243,20 @@ export const ManageEventScreen: React.FC<ManageEventScreenProps> = ({ navigation
             style={styles.container}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
+            {/* Banner de evento encerrado */}
+            {isPast && (
+                <Card style={styles.endedCard}>
+                    <Card.Content>
+                        <Text style={styles.endedTitle}>⏰ Evento Encerrado</Text>
+                        <Text style={styles.endedText}>
+                            Este evento já aconteceu. Você pode visualizar os detalhes, mas não é possível editá-lo.
+                        </Text>
+                    </Card.Content>
+                </Card>
+            )}
+
             {/* Resumo do Evento */}
-            <Card style={styles.summaryCard}>
+            <Card style={[styles.summaryCard, isPast && styles.summaryCardPast]}>
                 <Card.Content>
                     <Text variant="titleLarge" style={styles.eventTitle}>
                         {event.title}
@@ -264,10 +277,12 @@ export const ManageEventScreen: React.FC<ManageEventScreenProps> = ({ navigation
                         <Text style={styles.infoValue}>{spotsText}</Text>
                     </View>
 
-                    <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>⏳</Text>
-                        <Text style={styles.infoValue}>{requests.length} solicitação(ões) pendente(s)</Text>
-                    </View>
+                    {!isPast && (
+                        <View style={styles.infoRow}>
+                            <Text style={styles.infoLabel}>⏳</Text>
+                            <Text style={styles.infoValue}>{requests.length} solicitação(ões) pendente(s)</Text>
+                        </View>
+                    )}
 
                     <View style={styles.tagsRow}>
                         <Chip compact style={styles.chip}>
@@ -280,31 +295,36 @@ export const ManageEventScreen: React.FC<ManageEventScreenProps> = ({ navigation
                             {event.audience === 'adults_only' && '🔞 +18'}
                             {event.audience === 'invite_only' && '🔒 Convite'}
                         </Chip>
+                        {isPast && (
+                            <Chip compact style={styles.chipEnded}>Encerrado</Chip>
+                        )}
                     </View>
                 </Card.Content>
             </Card>
 
-            {/* Ações */}
-            <View style={styles.actionsRow}>
-                <Button
-                    mode="outlined"
-                    icon="pencil"
-                    onPress={handleEditEvent}
-                    style={styles.actionButton}
-                >
-                    Editar
-                </Button>
-                <Button
-                    mode="outlined"
-                    icon="cancel"
-                    onPress={handleCancelEvent}
-                    style={styles.actionButton}
-                    textColor="#d32f2f"
-                    loading={cancelEventMutation.isPending}
-                >
-                    Cancelar Evento
-                </Button>
-            </View>
+            {/* Ações - só mostra se evento não passou */}
+            {!isPast && (
+                <View style={styles.actionsRow}>
+                    <Button
+                        mode="outlined"
+                        icon="pencil"
+                        onPress={handleEditEvent}
+                        style={styles.actionButton}
+                    >
+                        Editar
+                    </Button>
+                    <Button
+                        mode="outlined"
+                        icon="cancel"
+                        onPress={handleCancelEvent}
+                        style={styles.actionButton}
+                        textColor="#d32f2f"
+                        loading={cancelEventMutation.isPending}
+                    >
+                        Cancelar Evento
+                    </Button>
+                </View>
+            )}
 
             <Divider style={styles.divider} />
 
@@ -511,5 +531,27 @@ const styles = StyleSheet.create({
     },
     bottomPadding: {
         height: 40,
+    },
+    endedCard: {
+        backgroundColor: '#f5f5f5',
+        margin: 16,
+        marginBottom: 0,
+        borderLeftWidth: 4,
+        borderLeftColor: '#9e9e9e',
+    },
+    endedTitle: {
+        fontWeight: 'bold',
+        color: '#616161',
+        marginBottom: 4,
+    },
+    endedText: {
+        color: '#757575',
+        fontSize: 14,
+    },
+    summaryCardPast: {
+        opacity: 0.7,
+    },
+    chipEnded: {
+        backgroundColor: '#e0e0e0',
     },
 });

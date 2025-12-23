@@ -16,7 +16,7 @@ export const MyEventsScreen: React.FC<MyEventsScreenProps> = ({ navigation }) =>
     const [activeTab, setActiveTab] = useState<TabKey>('created');
     const [refreshing, setRefreshing] = useState(false);
 
-    // Query: Eventos que criei
+    // Query: Eventos que criei (apenas futuros)
     const createdEventsQuery = useQuery({
         queryKey: ['my_events_created', user?.id],
         queryFn: async () => {
@@ -25,6 +25,7 @@ export const MyEventsScreen: React.FC<MyEventsScreenProps> = ({ navigation }) =>
                 .from('events')
                 .select('*')
                 .eq('creator_id', user.id)
+                .gte('event_at', new Date().toISOString()) // Apenas futuros
                 .is('deleted_at', null)
                 .order('event_at', { ascending: true });
             if (error) throw error;
@@ -149,13 +150,24 @@ export const MyEventsScreen: React.FC<MyEventsScreenProps> = ({ navigation }) =>
         if (!event) return null;
 
         const eventDate = new Date(event.event_at);
-        const isPast = eventDate < new Date();
+        const now = new Date();
+        const isPast = eventDate < now;
         const formattedDate = eventDate.toLocaleDateString('pt-BR', {
             day: '2-digit',
             month: 'short',
             hour: '2-digit',
             minute: '2-digit',
         });
+
+        // Calcular status do evento
+        const getEventStatus = () => {
+            if (isPast) return { label: 'Encerrado', color: '#9e9e9e', bgColor: '#f5f5f5' };
+            const hoursUntil = (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+            if (hoursUntil <= 24) return { label: 'Hoje/Amanhã', color: '#e65100', bgColor: '#fff3e0' };
+            return null;
+        };
+
+        const status = getEventStatus();
 
         return (
             <Card
@@ -167,11 +179,21 @@ export const MyEventsScreen: React.FC<MyEventsScreenProps> = ({ navigation }) =>
                         <Text variant="titleMedium" style={styles.eventTitle} numberOfLines={1}>
                             {event.title}
                         </Text>
+
+                        {/* Status chips */}
                         {activeTab === 'created' && (
                             <Chip compact style={styles.chipCreator}>Criador</Chip>
                         )}
                         {activeTab === 'pending' && (
                             <Chip compact style={styles.chipPending}>Pendente</Chip>
+                        )}
+                        {activeTab === 'participating' && status && (
+                            <Chip compact style={{ backgroundColor: status.bgColor }}>
+                                {status.label}
+                            </Chip>
+                        )}
+                        {activeTab === 'history' && (
+                            <Chip compact style={styles.chipEnded}>Encerrado</Chip>
                         )}
                     </View>
 
@@ -182,17 +204,32 @@ export const MyEventsScreen: React.FC<MyEventsScreenProps> = ({ navigation }) =>
                         📍 {event.city}
                     </Text>
 
+                    {/* Botão Gerenciar - só em Criados */}
                     {activeTab === 'created' && (
                         <Button
                             mode="outlined"
                             compact
                             style={styles.manageButton}
+                            icon="cog"
                             onPress={() => navigation.navigate('ManageEvent', {
                                 eventId: event.id,
                                 eventTitle: event.title
                             })}
                         >
                             Gerenciar
+                        </Button>
+                    )}
+
+                    {/* Botão Ver Detalhes - no Histórico */}
+                    {activeTab === 'history' && (
+                        <Button
+                            mode="text"
+                            compact
+                            style={styles.manageButton}
+                            icon="eye"
+                            onPress={() => handleEventPress(event.id)}
+                        >
+                            Ver Detalhes
                         </Button>
                     )}
                 </Card.Content>
@@ -308,6 +345,14 @@ const styles = StyleSheet.create({
     },
     chipPending: {
         backgroundColor: '#fff3e0',
+        marginLeft: 8,
+    },
+    chipEnded: {
+        backgroundColor: '#f5f5f5',
+        marginLeft: 8,
+    },
+    chipHistory: {
+        backgroundColor: '#e8f5e9',
         marginLeft: 8,
     },
     eventInfo: {

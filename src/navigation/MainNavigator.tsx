@@ -10,6 +10,7 @@ import {
   AccountScreen,
   SettingsScreen,
   ManageEventScreen,
+  EditEventScreen,
   MapScreen,
   MyEventsScreen,
 } from '../screens/Main';
@@ -35,6 +36,11 @@ const DiscoverStack = () => (
       component={ManageEventScreen}
       options={{ title: 'Gerenciar Evento' }}
     />
+    <Stack.Screen
+      name="EditEvent"
+      component={EditEventScreen}
+      options={{ title: 'Editar Evento' }}
+    />
   </Stack.Navigator>
 );
 
@@ -55,6 +61,11 @@ const MyEventsStack = () => (
       name="ManageEvent"
       component={ManageEventScreen}
       options={{ title: 'Gerenciar Evento' }}
+    />
+    <Stack.Screen
+      name="EditEvent"
+      component={EditEventScreen}
+      options={{ title: 'Editar Evento' }}
     />
   </Stack.Navigator>
 );

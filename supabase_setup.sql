@@ -187,10 +187,12 @@ CREATE INDEX IF NOT EXISTS idx_participation_requests_user_id ON public.particip
 
 
 -- 9. TABELA DE NOTIFICAÇÕES
+DROP TABLE IF EXISTS public.notifications;
 CREATE TABLE IF NOT EXISTS public.notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   recipient_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  type TEXT NOT NULL CHECK (type IN ('new_request', 'request_accepted', 'request_rejected')),
+  type TEXT NOT NULL CHECK (type IN ('new_request', 'request_accepted', 'request_rejected', 'event_updated', 'event_cancelled')),
+  event_id UUID REFERENCES public.events(id) ON DELETE CASCADE,
   payload JSONB,
   read_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -198,6 +200,7 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 
 CREATE INDEX IF NOT EXISTS idx_notifications_recipient_id ON public.notifications(recipient_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_read_at ON public.notifications(read_at);
+CREATE INDEX IF NOT EXISTS idx_notifications_event_id ON public.notifications(event_id);
 
 -- RLS para notifications
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
@@ -213,6 +216,48 @@ CREATE POLICY "Sistema pode criar notificações" ON public.notifications
 DROP POLICY IF EXISTS "Usuário pode marcar como lida" ON public.notifications;
 CREATE POLICY "Usuário pode marcar como lida" ON public.notifications
   FOR UPDATE USING (auth.uid() = recipient_id);
+
+
+-- 10. TABELA DE LOG DE ALTERAÇÕES DE EVENTOS
+CREATE TABLE IF NOT EXISTS public.event_changes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  changed_by UUID NOT NULL REFERENCES public.users(id),
+  field_name TEXT NOT NULL,
+  old_value TEXT,
+  new_value TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_changes_event_id ON public.event_changes(event_id);
+
+-- RLS para event_changes
+ALTER TABLE public.event_changes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Participantes veem alterações" ON public.event_changes;
+CREATE POLICY "Participantes veem alterações" ON public.event_changes
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.event_participants 
+      WHERE event_participants.event_id = event_changes.event_id 
+      AND event_participants.user_id = auth.uid()
+    ) OR
+    EXISTS (
+      SELECT 1 FROM public.events 
+      WHERE events.id = event_changes.event_id 
+      AND events.creator_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "Criador pode registrar alterações" ON public.event_changes;
+CREATE POLICY "Criador pode registrar alterações" ON public.event_changes
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.events 
+      WHERE events.id = event_changes.event_id 
+      AND events.creator_id = auth.uid()
+    )
+  );
 
 
 -- =====================================================

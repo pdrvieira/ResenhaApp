@@ -139,7 +139,19 @@ export const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ navigati
   );
 
   const renderParticipationButton = () => {
+    // Verificar se evento já passou
+    const isPast = event && new Date(event.event_at) < new Date();
+
     if (isCreator) {
+      // Se evento passou, mostrar apenas chip informativo
+      if (isPast) {
+        return (
+          <Chip icon="check-circle" style={styles.chip}>
+            Evento encerrado
+          </Chip>
+        );
+      }
+
       return (
         <Button
           mode="contained"
@@ -155,7 +167,7 @@ export const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ navigati
     if (userParticipating) {
       return (
         <Chip icon="check" style={styles.chip}>
-          Você está participando
+          {isPast ? 'Você participou' : 'Você está participando'}
         </Chip>
       );
     }
@@ -172,6 +184,15 @@ export const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ navigati
       return (
         <Chip icon="close" style={styles.chipRejected}>
           Solicitação recusada
+        </Chip>
+      );
+    }
+
+    // Se evento passou, não permitir novas solicitações
+    if (isPast) {
+      return (
+        <Chip icon="calendar-remove" style={styles.chipRejected}>
+          Evento encerrado
         </Chip>
       );
     }
