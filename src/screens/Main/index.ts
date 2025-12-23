@@ -7,6 +7,6 @@ export { MessagesScreen } from './MessagesScreen';
 export { ChatScreen } from './ChatScreen';
 export { AccountScreen } from './AccountScreen';
 export { SettingsScreen } from './SettingsScreen';
-export { ManageRequestsScreen } from './ManageRequestsScreen';
+export { ManageEventScreen } from './ManageEventScreen';
 export { MapScreen } from './MapScreen';
 export { MyEventsScreen } from './MyEventsScreen';

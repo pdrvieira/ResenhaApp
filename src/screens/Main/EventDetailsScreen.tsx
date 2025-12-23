@@ -143,7 +143,7 @@ export const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ navigati
       return (
         <Button
           mode="contained"
-          onPress={() => navigation.navigate('ManageRequests', { eventId, eventTitle: event.title })}
+          onPress={() => navigation.navigate('ManageEvent', { eventId, eventTitle: event.title })}
           style={styles.button}
           icon="account-group"
         >

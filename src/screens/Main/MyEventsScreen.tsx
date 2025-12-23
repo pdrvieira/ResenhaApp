@@ -187,7 +187,7 @@ export const MyEventsScreen: React.FC<MyEventsScreenProps> = ({ navigation }) =>
                             mode="outlined"
                             compact
                             style={styles.manageButton}
-                            onPress={() => navigation.navigate('ManageRequests', {
+                            onPress={() => navigation.navigate('ManageEvent', {
                                 eventId: event.id,
                                 eventTitle: event.title
                             })}

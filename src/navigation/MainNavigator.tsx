@@ -9,7 +9,7 @@ import {
   ChatScreen,
   AccountScreen,
   SettingsScreen,
-  ManageRequestsScreen,
+  ManageEventScreen,
   MapScreen,
   MyEventsScreen,
 } from '../screens/Main';
@@ -31,9 +31,9 @@ const DiscoverStack = () => (
       options={{ title: 'Detalhes do Evento' }}
     />
     <Stack.Screen
-      name="ManageRequests"
-      component={ManageRequestsScreen}
-      options={{ title: 'Solicitações' }}
+      name="ManageEvent"
+      component={ManageEventScreen}
+      options={{ title: 'Gerenciar Evento' }}
     />
   </Stack.Navigator>
 );
@@ -52,9 +52,9 @@ const MyEventsStack = () => (
       options={{ title: 'Detalhes do Evento' }}
     />
     <Stack.Screen
-      name="ManageRequests"
-      component={ManageRequestsScreen}
-      options={{ title: 'Solicitações' }}
+      name="ManageEvent"
+      component={ManageEventScreen}
+      options={{ title: 'Gerenciar Evento' }}
     />
   </Stack.Navigator>
 );
