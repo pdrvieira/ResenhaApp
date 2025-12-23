@@ -1,104 +1,201 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Image } from 'react-native';
-import { Button, Text } from 'react-native-paper';
-import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import { View, StyleSheet, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
+import { TextInput, Button, Text, HelperText } from 'react-native-paper';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
-interface CreateEventStep1Props {
-  onNext: (photoUri: string) => void;
-  loading?: boolean;
+interface Step1Data {
+  title: string;
+  description: string;
+  eventDate: Date;
 }
 
-export const CreateEventStep1: React.FC<CreateEventStep1Props> = ({ onNext, loading = false }) => {
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [error, setError] = useState('');
+interface CreateEventStep1Props {
+  onNext: (data: Step1Data) => void;
+  initialData?: Partial<Step1Data>;
+}
 
-  const handleTakePhoto = async () => {
-    launchCamera(
-      {
-        mediaType: 'photo',
-      },
-      (response) => {
-        if (response.assets && response.assets[0]) {
-          setPhotoUri(response.assets[0].uri);
-        }
-      }
-    );
-  };
+export const CreateEventStep1: React.FC<CreateEventStep1Props> = ({ onNext, initialData }) => {
+  const [title, setTitle] = useState(initialData?.title || '');
+  const [description, setDescription] = useState(initialData?.description || '');
+  const [eventDate, setEventDate] = useState(initialData?.eventDate || new Date());
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+  const [errors, setErrors] = useState<{ title?: string; description?: string; date?: string }>({});
 
-  const handleChoosePhoto = async () => {
-    launchImageLibrary(
-      {
-        mediaType: 'photo',
-        selectionLimit: 1,
-      },
-      (response) => {
-        if (response.assets && response.assets[0]) {
-          setPhotoUri(response.assets[0].uri);
-        }
-      }
-    );
+  const validateForm = (): boolean => {
+    const newErrors: typeof errors = {};
+
+    if (!title.trim()) {
+      newErrors.title = 'Título é obrigatório';
+    } else if (title.trim().length < 3) {
+      newErrors.title = 'Título deve ter pelo menos 3 caracteres';
+    }
+
+    if (!description.trim()) {
+      newErrors.description = 'Descrição é obrigatória';
+    } else if (description.trim().length < 10) {
+      newErrors.description = 'Descrição deve ter pelo menos 10 caracteres';
+    }
+
+    const now = new Date();
+    if (eventDate <= now) {
+      newErrors.date = 'A data deve ser no futuro';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleNext = () => {
-    setError('');
-
-    if (!photoUri) {
-      setError('Foto é obrigatória');
-      return;
+    if (validateForm()) {
+      onNext({
+        title: title.trim(),
+        description: description.trim(),
+        eventDate,
+      });
     }
-
-    onNext(photoUri);
   };
 
+  const handleDateTimeChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowPicker(false);
+
+      if (selectedDate) {
+        if (pickerMode === 'date') {
+          const newDate = new Date(selectedDate);
+          newDate.setHours(eventDate.getHours(), eventDate.getMinutes());
+          setEventDate(newDate);
+          setTimeout(() => {
+            setPickerMode('time');
+            setShowPicker(true);
+          }, 100);
+        } else {
+          const newDate = new Date(eventDate);
+          newDate.setHours(selectedDate.getHours(), selectedDate.getMinutes());
+          setEventDate(newDate);
+        }
+      }
+    } else {
+      if (selectedDate) {
+        setEventDate(selectedDate);
+      }
+    }
+  };
+
+  const openPicker = () => {
+    setPickerMode('date');
+    setShowPicker(true);
+  };
+
+  const formattedDateTime = eventDate.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text variant="headlineSmall" style={styles.title}>
-          Criar Evento
-        </Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <Text variant="headlineSmall" style={styles.title}>
+            Criar Evento
+          </Text>
+          <Text style={styles.stepIndicator}>Passo 1 de 3</Text>
+          <Text style={styles.subtitle}>
+            O que é o seu evento?
+          </Text>
+        </View>
 
-        <Text style={styles.subtitle}>
-          Passo 1: Foto do Evento
-        </Text>
-
-        {photoUri && (
-          <Image
-            source={{ uri: photoUri }}
-            style={styles.photoPreview}
+        <View style={styles.form}>
+          <TextInput
+            label="Título do Evento *"
+            value={title}
+            onChangeText={(text) => {
+              setTitle(text);
+              if (errors.title) setErrors({ ...errors, title: undefined });
+            }}
+            placeholder="Ex: Festa de Aniversário"
+            style={styles.input}
+            mode="outlined"
+            error={!!errors.title}
+            maxLength={100}
           />
-        )}
+          <HelperText type="error" visible={!!errors.title}>
+            {errors.title}
+          </HelperText>
 
-        <Button
-          mode="contained"
-          onPress={handleTakePhoto}
-          disabled={loading}
-          style={styles.button}
-        >
-          Tirar Foto
-        </Button>
+          <TextInput
+            label="Descrição *"
+            value={description}
+            onChangeText={(text) => {
+              setDescription(text);
+              if (errors.description) setErrors({ ...errors, description: undefined });
+            }}
+            placeholder="Descreva seu evento..."
+            style={styles.input}
+            mode="outlined"
+            multiline
+            numberOfLines={4}
+            error={!!errors.description}
+            maxLength={500}
+          />
+          <HelperText type={errors.description ? 'error' : 'info'} visible>
+            {errors.description || `${description.length}/500 caracteres`}
+          </HelperText>
 
-        <Button
-          mode="outlined"
-          onPress={handleChoosePhoto}
-          disabled={loading}
-          style={styles.button}
-        >
-          Escolher da Galeria
-        </Button>
+          <Text style={styles.sectionLabel}>Quando? *</Text>
 
-        {error && <Text style={styles.error}>{error}</Text>}
+          <Button
+            mode="outlined"
+            onPress={openPicker}
+            style={styles.dateButton}
+            contentStyle={styles.dateButtonContent}
+            icon="calendar-clock"
+          >
+            {formattedDateTime}
+          </Button>
 
-        <Button
-          mode="contained"
-          onPress={handleNext}
-          loading={loading}
-          disabled={loading || !photoUri}
-          style={styles.nextButton}
-        >
-          Próximo
-        </Button>
-      </View>
-    </ScrollView>
+          {errors.date && (
+            <HelperText type="error" visible>
+              {errors.date}
+            </HelperText>
+          )}
+
+          {showPicker && (
+            <DateTimePicker
+              value={eventDate}
+              mode={Platform.OS === 'ios' ? 'datetime' : pickerMode}
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={handleDateTimeChange}
+              minimumDate={new Date()}
+              locale="pt-BR"
+            />
+          )}
+
+          {Platform.OS === 'ios' && showPicker && (
+            <Button mode="text" onPress={() => setShowPicker(false)}>
+              Confirmar
+            </Button>
+          )}
+        </View>
+
+        <View style={styles.footer}>
+          <Button
+            mode="contained"
+            onPress={handleNext}
+            style={styles.nextButton}
+            contentStyle={styles.buttonContent}
+          >
+            Próximo: Localização
+          </Button>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -107,37 +204,56 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  content: {
+  scrollContent: {
+    flexGrow: 1,
     padding: 20,
-    justifyContent: 'center',
-    minHeight: '100%',
+  },
+  header: {
+    marginBottom: 24,
   },
   title: {
-    textAlign: 'center',
-    marginBottom: 40,
     fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  stepIndicator: {
+    textAlign: 'center',
+    color: '#6200ee',
+    fontWeight: '600',
+    marginTop: 4,
   },
   subtitle: {
-    fontSize: 14,
-    marginBottom: 24,
     textAlign: 'center',
+    color: '#666',
+    marginTop: 8,
+    fontSize: 16,
   },
-  photoPreview: {
-    width: '100%',
-    height: 250,
+  form: {
+    flex: 1,
+  },
+  input: {
+    marginBottom: 0,
+  },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  dateButton: {
     borderRadius: 8,
-    marginBottom: 24,
   },
-  button: {
-    marginBottom: 12,
+  dateButtonContent: {
+    paddingVertical: 8,
+    justifyContent: 'flex-start',
+  },
+  footer: {
+    marginTop: 24,
   },
   nextButton: {
-    marginTop: 20,
-    marginBottom: 12,
+    borderRadius: 8,
   },
-  error: {
-    color: '#d32f2f',
-    marginBottom: 12,
-    textAlign: 'center',
+  buttonContent: {
+    paddingVertical: 8,
   },
 });

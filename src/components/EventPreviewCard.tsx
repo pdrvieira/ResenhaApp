@@ -1,16 +1,19 @@
 import React from 'react';
 import { View, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { Text, Button, Surface } from 'react-native-paper';
+import { Text, Button, Surface, Chip } from 'react-native-paper';
 import { Event } from '../services/supabase';
+import { getFormattedDistance } from '../utils/geo';
 
 interface EventPreviewCardProps {
     event: Event;
+    userLocation: { latitude: number; longitude: number } | null;
     onViewDetails: () => void;
     onClose: () => void;
 }
 
 export const EventPreviewCard: React.FC<EventPreviewCardProps> = ({
     event,
+    userLocation,
     onViewDetails,
     onClose,
 }) => {
@@ -21,6 +24,22 @@ export const EventPreviewCard: React.FC<EventPreviewCardProps> = ({
         hour: '2-digit',
         minute: '2-digit',
     });
+
+    // Calcular distância
+    const distance = getFormattedDistance(
+        userLocation?.latitude ?? null,
+        userLocation?.longitude ?? null,
+        event.latitude,
+        event.longitude
+    );
+
+    // Formatar tipo de entrada
+    const getEntryLabel = () => {
+        if (event.entry_type === 'free') return '🆓 Gratuito';
+        if (event.entry_type === 'paid') return `💰 R$ ${event.entry_price?.toFixed(2).replace('.', ',')}`;
+        if (event.entry_type === 'bring') return '🎒 Traga algo';
+        return null;
+    };
 
     return (
         <Surface style={styles.container} elevation={4}>
@@ -42,15 +61,24 @@ export const EventPreviewCard: React.FC<EventPreviewCardProps> = ({
                         📅 {formattedDate}
                     </Text>
 
-                    <Text variant="bodySmall" numberOfLines={1} style={styles.location}>
-                        📍 {event.address}, {event.city}
-                    </Text>
-
-                    {event.max_participants && (
-                        <Text variant="bodySmall" style={styles.participants}>
-                            👥 Até {event.max_participants} pessoas
+                    {distance && (
+                        <Text variant="bodySmall" style={styles.distance}>
+                            📍 {distance} de você
                         </Text>
                     )}
+
+                    <View style={styles.tagsRow}>
+                        {getEntryLabel() && (
+                            <Chip compact style={styles.tag} textStyle={styles.tagText}>
+                                {getEntryLabel()}
+                            </Chip>
+                        )}
+                        {event.audience === 'adults_only' && (
+                            <Chip compact style={styles.tagAdult} textStyle={styles.tagText}>
+                                🔞 +18
+                            </Chip>
+                        )}
+                    </View>
                 </View>
             </View>
 
@@ -114,12 +142,26 @@ const styles = StyleSheet.create({
         color: '#666',
         marginBottom: 2,
     },
-    location: {
-        color: '#666',
-        marginBottom: 2,
+    distance: {
+        color: '#6200ee',
+        fontWeight: '500',
+        marginBottom: 4,
     },
-    participants: {
-        color: '#666',
+    tagsRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 4,
+    },
+    tag: {
+        height: 24,
+        backgroundColor: '#f0f0f0',
+    },
+    tagAdult: {
+        height: 24,
+        backgroundColor: '#ffebee',
+    },
+    tagText: {
+        fontSize: 11,
     },
     button: {
         borderRadius: 8,

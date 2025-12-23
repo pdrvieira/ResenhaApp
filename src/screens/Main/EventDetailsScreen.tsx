@@ -208,7 +208,46 @@ export const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ navigati
           <Text variant="bodySmall">📅 {formattedDate}</Text>
           <Text variant="bodySmall">📍 {event.address}, {event.city}</Text>
           {event.max_participants && (
-            <Text variant="bodySmall">👥 Até {event.max_participants} participantes</Text>
+            <Text variant="bodySmall">👥 Até {event.max_participants} vagas</Text>
+          )}
+        </View>
+
+        {/* Detalhes do Evento */}
+        <View style={styles.detailsSection}>
+          {/* Tipo de entrada */}
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>💰 Entrada:</Text>
+            <Text style={styles.detailValue}>
+              {event.entry_type === 'free' && 'Gratuito'}
+              {event.entry_type === 'paid' && `R$ ${event.entry_price?.toFixed(2).replace('.', ',')}`}
+              {event.entry_type === 'bring' && 'Traga algo'}
+            </Text>
+          </View>
+
+          {/* O que trazer */}
+          {event.entry_type === 'bring' && event.bring_what && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>🎒 Trazer:</Text>
+              <Text style={styles.detailValue}>{event.bring_what}</Text>
+            </View>
+          )}
+
+          {/* Público */}
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>👤 Público:</Text>
+            <Text style={styles.detailValue}>
+              {event.audience === 'everyone' && 'Aberto a todos'}
+              {event.audience === 'adults_only' && '🔞 Apenas +18'}
+              {event.audience === 'invite_only' && '🔒 Somente convidados'}
+            </Text>
+          </View>
+
+          {/* Motivação */}
+          {event.motivation && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>💭 Motivação:</Text>
+              <Text style={styles.detailValue}>{event.motivation}</Text>
+            </View>
           )}
         </View>
 
@@ -257,7 +296,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     padding: 12,
     borderRadius: 8,
+    marginBottom: 12,
+  },
+  detailsSection: {
+    backgroundColor: '#fafafa',
+    padding: 12,
+    borderRadius: 8,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: '#666',
+    width: 100,
+  },
+  detailValue: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
+    fontWeight: '500',
   },
   button: {
     marginBottom: 20,

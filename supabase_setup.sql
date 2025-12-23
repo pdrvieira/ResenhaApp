@@ -134,6 +134,13 @@ CREATE TABLE IF NOT EXISTS public.events (
   latitude DOUBLE PRECISION,
   longitude DOUBLE PRECISION,
   max_participants INTEGER,
+  -- Novos campos de detalhes
+  entry_type TEXT NOT NULL DEFAULT 'free' CHECK (entry_type IN ('free', 'paid', 'bring')),
+  entry_price DECIMAL(10,2),
+  bring_what TEXT,
+  audience TEXT NOT NULL DEFAULT 'everyone' CHECK (audience IN ('everyone', 'adults_only', 'invite_only')),
+  motivation TEXT,
+  -- Timestamps
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   deleted_at TIMESTAMP WITH TIME ZONE
@@ -142,6 +149,11 @@ CREATE TABLE IF NOT EXISTS public.events (
 -- Adicionar colunas se tabela já existe
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS entry_type TEXT DEFAULT 'free';
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS entry_price DECIMAL(10,2);
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS bring_what TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS audience TEXT DEFAULT 'everyone';
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS motivation TEXT;
 
 -- event_participants
 CREATE TABLE IF NOT EXISTS public.event_participants (

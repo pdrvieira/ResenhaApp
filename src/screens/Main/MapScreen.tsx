@@ -144,6 +144,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
             {selectedEvent && (
                 <EventPreviewCard
                     event={selectedEvent}
+                    userLocation={location}
                     onViewDetails={handleViewDetails}
                     onClose={handleClosePreview}
                 />

@@ -5,93 +5,97 @@ import { LoadingScreen } from '../../components/LoadingScreen';
 import { CreateEventStep1 } from './CreateEventStep1';
 import { CreateEventStep2 } from './CreateEventStep2';
 import { CreateEventStep3 } from './CreateEventStep3';
-import { CreateEventStep4 } from './CreateEventStep4';
 
 interface CreateEventScreenProps {
   navigation: any;
 }
 
+type EntryType = 'free' | 'paid' | 'bring';
+type Audience = 'everyone' | 'adults_only' | 'invite_only';
+
 interface EventFormData {
-  photoUri: string;
+  // Step 1
   title: string;
   description: string;
-  eventDate: string;
+  eventDate: Date;
+  // Step 2
   city: string;
   address: string;
-  latitude?: number;
-  longitude?: number;
+  latitude: number;
+  longitude: number;
+  // Step 3
+  entryType: EntryType;
+  entryPrice?: number;
+  bringWhat?: string;
+  audience: Audience;
+  motivation?: string;
+  photoUri?: string;
   maxParticipants?: number;
 }
 
-const INITIAL_DATA: EventFormData = {
-  photoUri: '',
-  title: '',
-  description: '',
-  eventDate: '',
-  city: '',
-  address: '',
-  latitude: undefined,
-  longitude: undefined,
-  maxParticipants: undefined,
-};
+const INITIAL_DATA: Partial<EventFormData> = {};
 
 export const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const { createEvent } = useEvents();
-  const [eventData, setEventData] = useState<EventFormData>(INITIAL_DATA);
+  const [formData, setFormData] = useState<Partial<EventFormData>>(INITIAL_DATA);
 
-  const handleStep1 = (photoUri: string) => {
-    setEventData((prev) => ({ ...prev, photoUri }));
-    setStep(2);
-  };
-
-  const handleStep2 = (data: { title: string; description: string }) => {
-    setEventData((prev) => ({
+  // Step 1: Informações básicas
+  const handleStep1Complete = (data: { title: string; description: string; eventDate: Date }) => {
+    setFormData((prev) => ({
       ...prev,
       title: data.title,
       description: data.description,
+      eventDate: data.eventDate,
     }));
-    setStep(3);
+    setStep(2);
   };
 
-  const handleStep3 = (data: {
-    eventDate: string;
-    city: string;
-    address: string;
-    latitude?: number;
-    longitude?: number;
-  }) => {
-    setEventData((prev) => ({
+  // Step 2: Localização
+  const handleStep2Complete = (data: { city: string; address: string; latitude: number; longitude: number }) => {
+    setFormData((prev) => ({
       ...prev,
-      eventDate: data.eventDate,
       city: data.city,
       address: data.address,
       latitude: data.latitude,
       longitude: data.longitude,
     }));
-    setStep(4);
+    setStep(3);
   };
 
-  const handleStep4 = async (maxParticipants?: number) => {
+  // Step 3: Finalização
+  const handleStep3Complete = async (data: {
+    entryType: EntryType;
+    entryPrice?: number;
+    bringWhat?: string;
+    audience: Audience;
+    motivation?: string;
+    photoUri?: string;
+    maxParticipants?: number;
+  }) => {
+    const finalData = { ...formData, ...data };
+
     try {
       setLoading(true);
-
-      // TODO: Upload de imagem para Supabase Storage
-      const imageUrl = eventData.photoUri;
 
       await new Promise<void>((resolve, reject) => {
         createEvent(
           {
-            title: eventData.title,
-            description: eventData.description,
-            image_url: imageUrl,
-            event_at: eventData.eventDate,
-            city: eventData.city,
-            address: eventData.address,
-            latitude: eventData.latitude,
-            longitude: eventData.longitude,
-            max_participants: maxParticipants,
+            title: finalData.title!,
+            description: finalData.description!,
+            image_url: finalData.photoUri,
+            event_at: finalData.eventDate!.toISOString(),
+            city: finalData.city!,
+            address: finalData.address!,
+            latitude: finalData.latitude,
+            longitude: finalData.longitude,
+            max_participants: finalData.maxParticipants,
+            entry_type: finalData.entryType,
+            entry_price: finalData.entryPrice,
+            bring_what: finalData.bringWhat,
+            audience: finalData.audience,
+            motivation: finalData.motivation,
           },
           {
             onSuccess: () => resolve(),
@@ -101,39 +105,84 @@ export const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation
       });
 
       Alert.alert(
-        'Evento Criado!',
-        eventData.latitude
-          ? 'Seu evento foi criado e aparecerá no mapa.'
-          : 'Seu evento foi criado. (Endereço não localizado no mapa)',
+        '🎉 Evento Criado!',
+        'Seu evento foi criado com sucesso e já está visível no mapa.',
         [
           {
             text: 'Ver no Mapa',
             onPress: () => {
-              setStep(1);
-              setEventData(INITIAL_DATA);
+              resetForm();
               navigation.navigate('Map');
             },
           },
         ]
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao criar evento:', error);
-      Alert.alert('Erro', 'Não foi possível criar o evento. Tente novamente.');
+      Alert.alert(
+        'Erro',
+        error.message || 'Não foi possível criar o evento. Tente novamente.'
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  const resetForm = () => {
+    setStep(1);
+    setFormData(INITIAL_DATA);
+  };
+
+  const handleBack = () => {
+    if (step > 1) {
+      setStep(step - 1);
+    }
+  };
+
   if (loading) {
-    return <LoadingScreen message="Criando evento..." />;
+    return <LoadingScreen message="Criando seu evento..." />;
   }
 
   return (
     <View style={styles.container}>
-      {step === 1 && <CreateEventStep1 onNext={handleStep1} loading={loading} />}
-      {step === 2 && <CreateEventStep2 onNext={handleStep2} loading={loading} />}
-      {step === 3 && <CreateEventStep3 onNext={handleStep3} loading={loading} />}
-      {step === 4 && <CreateEventStep4 onFinish={handleStep4} loading={loading} />}
+      {step === 1 && (
+        <CreateEventStep1
+          onNext={handleStep1Complete}
+          initialData={{
+            title: formData.title,
+            description: formData.description,
+            eventDate: formData.eventDate,
+          }}
+        />
+      )}
+
+      {step === 2 && (
+        <CreateEventStep2
+          onNext={handleStep2Complete}
+          onBack={handleBack}
+          initialData={{
+            city: formData.city,
+            address: formData.address,
+            latitude: formData.latitude,
+            longitude: formData.longitude,
+          }}
+        />
+      )}
+
+      {step === 3 && formData.title && formData.eventDate && formData.city && formData.address && (
+        <CreateEventStep3
+          onFinish={handleStep3Complete}
+          onBack={handleBack}
+          eventSummary={{
+            title: formData.title,
+            description: formData.description!,
+            eventDate: formData.eventDate,
+            city: formData.city,
+            address: formData.address,
+          }}
+          loading={loading}
+        />
+      )}
     </View>
   );
 };
@@ -141,5 +190,6 @@ export const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
   },
 });

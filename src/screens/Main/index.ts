@@ -4,7 +4,6 @@ export { CreateEventScreen } from './CreateEventScreen';
 export { CreateEventStep1 } from './CreateEventStep1';
 export { CreateEventStep2 } from './CreateEventStep2';
 export { CreateEventStep3 } from './CreateEventStep3';
-export { CreateEventStep4 } from './CreateEventStep4';
 export { MessagesScreen } from './MessagesScreen';
 export { ChatScreen } from './ChatScreen';
 export { AccountScreen } from './AccountScreen';

@@ -63,6 +63,13 @@ export interface Event {
   latitude?: number;
   longitude?: number;
   max_participants?: number;
+  // Novos campos de detalhes
+  entry_type: 'free' | 'paid' | 'bring';
+  entry_price?: number;
+  bring_what?: string;
+  audience: 'everyone' | 'adults_only' | 'invite_only';
+  motivation?: string;
+  // Timestamps
   created_at: string;
   updated_at: string;
   deleted_at?: string;
