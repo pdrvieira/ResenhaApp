@@ -3,7 +3,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
-  FeedScreen,
   EventDetailsScreen,
   CreateEventScreen,
   MessagesScreen,
@@ -12,18 +11,19 @@ import {
   SettingsScreen,
   ManageRequestsScreen,
   MapScreen,
+  MyEventsScreen,
 } from '../screens/Main';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Stack do Mapa (HOME)
-const MapStack = () => (
+// Stack: Descobrir (Mapa + Explorar)
+const DiscoverStack = () => (
   <Stack.Navigator>
     <Stack.Screen
-      name="MapView"
+      name="DiscoverMap"
       component={MapScreen}
-      options={{ title: 'Mapa', headerShown: false }}
+      options={{ title: 'Descobrir', headerShown: false }}
     />
     <Stack.Screen
       name="EventDetails"
@@ -38,22 +38,28 @@ const MapStack = () => (
   </Stack.Navigator>
 );
 
-// Stack do Feed (lista)
-const FeedStack = () => (
+// Stack: Meus Eventos
+const MyEventsStack = () => (
   <Stack.Navigator>
     <Stack.Screen
-      name="FeedList"
-      component={FeedScreen}
-      options={{ title: 'Lista de Eventos' }}
+      name="MyEventsList"
+      component={MyEventsScreen}
+      options={{ title: 'Meus Eventos' }}
     />
     <Stack.Screen
       name="EventDetails"
       component={EventDetailsScreen}
       options={{ title: 'Detalhes do Evento' }}
     />
+    <Stack.Screen
+      name="ManageRequests"
+      component={ManageRequestsScreen}
+      options={{ title: 'Solicitações' }}
+    />
   </Stack.Navigator>
 );
 
+// Stack: Criar Evento
 const CreateEventStack = () => (
   <Stack.Navigator>
     <Stack.Screen
@@ -64,12 +70,13 @@ const CreateEventStack = () => (
   </Stack.Navigator>
 );
 
+// Stack: Mensagens
 const MessagesStack = () => (
   <Stack.Navigator>
     <Stack.Screen
       name="MessagesList"
       component={MessagesScreen}
-      options={{ title: 'Mensagens' }}
+      options={{ title: 'Conversas' }}
     />
     <Stack.Screen
       name="Chat"
@@ -81,12 +88,13 @@ const MessagesStack = () => (
   </Stack.Navigator>
 );
 
+// Stack: Perfil
 const AccountStack = () => (
   <Stack.Navigator>
     <Stack.Screen
       name="AccountProfile"
       component={AccountScreen}
-      options={{ title: 'Minha Conta' }}
+      options={{ title: 'Perfil' }}
     />
     <Stack.Screen
       name="Settings"
@@ -103,16 +111,22 @@ export const MainNavigator: React.FC = () => {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName = 'home';
 
-          if (route.name === 'Map') {
-            iconName = focused ? 'map' : 'map-outline';
-          } else if (route.name === 'Feed') {
-            iconName = focused ? 'format-list-bulleted' : 'format-list-bulleted';
-          } else if (route.name === 'CreateEvent') {
-            iconName = focused ? 'plus-circle' : 'plus-circle-outline';
-          } else if (route.name === 'Messages') {
-            iconName = focused ? 'chat' : 'chat-outline';
-          } else if (route.name === 'Account') {
-            iconName = focused ? 'account' : 'account-outline';
+          switch (route.name) {
+            case 'Discover':
+              iconName = focused ? 'map-marker-radius' : 'map-marker-radius-outline';
+              break;
+            case 'MyEvents':
+              iconName = focused ? 'calendar-check' : 'calendar-check-outline';
+              break;
+            case 'CreateEvent':
+              iconName = focused ? 'plus-circle' : 'plus-circle-outline';
+              break;
+            case 'Messages':
+              iconName = focused ? 'chat' : 'chat-outline';
+              break;
+            case 'Account':
+              iconName = focused ? 'account' : 'account-outline';
+              break;
           }
 
           return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
@@ -123,14 +137,14 @@ export const MainNavigator: React.FC = () => {
       })}
     >
       <Tab.Screen
-        name="Map"
-        component={MapStack}
-        options={{ title: 'Mapa' }}
+        name="Discover"
+        component={DiscoverStack}
+        options={{ title: 'Descobrir' }}
       />
       <Tab.Screen
-        name="Feed"
-        component={FeedStack}
-        options={{ title: 'Lista' }}
+        name="MyEvents"
+        component={MyEventsStack}
+        options={{ title: 'Meus Eventos' }}
       />
       <Tab.Screen
         name="CreateEvent"

@@ -1,4 +1,3 @@
-export { FeedScreen } from './FeedScreen';
 export { EventDetailsScreen } from './EventDetailsScreen';
 export { CreateEventScreen } from './CreateEventScreen';
 export { CreateEventStep1 } from './CreateEventStep1';
@@ -10,3 +9,4 @@ export { AccountScreen } from './AccountScreen';
 export { SettingsScreen } from './SettingsScreen';
 export { ManageRequestsScreen } from './ManageRequestsScreen';
 export { MapScreen } from './MapScreen';
+export { MyEventsScreen } from './MyEventsScreen';

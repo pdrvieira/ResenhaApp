@@ -112,7 +112,7 @@ export const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation
             text: 'Ver no Mapa',
             onPress: () => {
               resetForm();
-              navigation.navigate('Map');
+              navigation.navigate('Discover');
             },
           },
         ]
