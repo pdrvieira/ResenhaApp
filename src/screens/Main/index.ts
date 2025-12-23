@@ -10,3 +10,4 @@ export { ChatScreen } from './ChatScreen';
 export { AccountScreen } from './AccountScreen';
 export { SettingsScreen } from './SettingsScreen';
 export { ManageRequestsScreen } from './ManageRequestsScreen';
+export { MapScreen } from './MapScreen';

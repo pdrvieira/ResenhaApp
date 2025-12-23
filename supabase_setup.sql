@@ -131,11 +131,17 @@ CREATE TABLE IF NOT EXISTS public.events (
   event_at TIMESTAMP WITH TIME ZONE NOT NULL,
   city TEXT NOT NULL,
   address TEXT NOT NULL,
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
   max_participants INTEGER,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   deleted_at TIMESTAMP WITH TIME ZONE
 );
+
+-- Adicionar colunas se tabela já existe
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
 
 -- event_participants
 CREATE TABLE IF NOT EXISTS public.event_participants (

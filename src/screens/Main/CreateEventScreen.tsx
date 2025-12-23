@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import { useEvents } from '../../hooks/useEvents';
 import { LoadingScreen } from '../../components/LoadingScreen';
 import { CreateEventStep1 } from './CreateEventStep1';
@@ -11,19 +11,35 @@ interface CreateEventScreenProps {
   navigation: any;
 }
 
+interface EventFormData {
+  photoUri: string;
+  title: string;
+  description: string;
+  eventDate: string;
+  city: string;
+  address: string;
+  latitude?: number;
+  longitude?: number;
+  maxParticipants?: number;
+}
+
+const INITIAL_DATA: EventFormData = {
+  photoUri: '',
+  title: '',
+  description: '',
+  eventDate: '',
+  city: '',
+  address: '',
+  latitude: undefined,
+  longitude: undefined,
+  maxParticipants: undefined,
+};
+
 export const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const { createEvent } = useEvents();
-  const [eventData, setEventData] = useState({
-    photoUri: '',
-    title: '',
-    description: '',
-    eventDate: '',
-    city: '',
-    address: '',
-    maxParticipants: undefined as number | undefined,
-  });
+  const [eventData, setEventData] = useState<EventFormData>(INITIAL_DATA);
 
   const handleStep1 = (photoUri: string) => {
     setEventData((prev) => ({ ...prev, photoUri }));
@@ -39,12 +55,20 @@ export const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation
     setStep(3);
   };
 
-  const handleStep3 = (data: { eventDate: string; city: string; address: string }) => {
+  const handleStep3 = (data: {
+    eventDate: string;
+    city: string;
+    address: string;
+    latitude?: number;
+    longitude?: number;
+  }) => {
     setEventData((prev) => ({
       ...prev,
       eventDate: data.eventDate,
       city: data.city,
       address: data.address,
+      latitude: data.latitude,
+      longitude: data.longitude,
     }));
     setStep(4);
   };
@@ -54,7 +78,6 @@ export const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation
       setLoading(true);
 
       // TODO: Upload de imagem para Supabase Storage
-      // Por enquanto, usar URL da imagem local
       const imageUrl = eventData.photoUri;
 
       await new Promise<void>((resolve, reject) => {
@@ -66,6 +89,8 @@ export const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation
             event_at: eventData.eventDate,
             city: eventData.city,
             address: eventData.address,
+            latitude: eventData.latitude,
+            longitude: eventData.longitude,
             max_participants: maxParticipants,
           },
           {
@@ -75,34 +100,24 @@ export const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation
         );
       });
 
-      // Feedback visual e navegação
-      const { Alert } = require('react-native');
       Alert.alert(
         'Evento Criado!',
-        'Seu evento foi criado com sucesso.',
+        eventData.latitude
+          ? 'Seu evento foi criado e aparecerá no mapa.'
+          : 'Seu evento foi criado. (Endereço não localizado no mapa)',
         [
           {
-            text: 'Ver no Feed',
+            text: 'Ver no Mapa',
             onPress: () => {
-              // Reset do step para permitir criar outro evento depois
               setStep(1);
-              setEventData({
-                photoUri: '',
-                title: '',
-                description: '',
-                eventDate: '',
-                city: '',
-                address: '',
-                maxParticipants: undefined,
-              });
-              navigation.navigate('Feed');
+              setEventData(INITIAL_DATA);
+              navigation.navigate('Map');
             },
           },
         ]
       );
     } catch (error) {
       console.error('Erro ao criar evento:', error);
-      const { Alert } = require('react-native');
       Alert.alert('Erro', 'Não foi possível criar o evento. Tente novamente.');
     } finally {
       setLoading(false);

@@ -11,17 +11,19 @@ import {
   AccountScreen,
   SettingsScreen,
   ManageRequestsScreen,
+  MapScreen,
 } from '../screens/Main';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const FeedStack = () => (
+// Stack do Mapa (HOME)
+const MapStack = () => (
   <Stack.Navigator>
     <Stack.Screen
-      name="FeedList"
-      component={FeedScreen}
-      options={{ title: 'Eventos' }}
+      name="MapView"
+      component={MapScreen}
+      options={{ title: 'Mapa', headerShown: false }}
     />
     <Stack.Screen
       name="EventDetails"
@@ -32,6 +34,22 @@ const FeedStack = () => (
       name="ManageRequests"
       component={ManageRequestsScreen}
       options={{ title: 'Solicitações' }}
+    />
+  </Stack.Navigator>
+);
+
+// Stack do Feed (lista)
+const FeedStack = () => (
+  <Stack.Navigator>
+    <Stack.Screen
+      name="FeedList"
+      component={FeedScreen}
+      options={{ title: 'Lista de Eventos' }}
+    />
+    <Stack.Screen
+      name="EventDetails"
+      component={EventDetailsScreen}
+      options={{ title: 'Detalhes do Evento' }}
     />
   </Stack.Navigator>
 );
@@ -85,8 +103,10 @@ export const MainNavigator: React.FC = () => {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName = 'home';
 
-          if (route.name === 'Feed') {
-            iconName = focused ? 'home' : 'home-outline';
+          if (route.name === 'Map') {
+            iconName = focused ? 'map' : 'map-outline';
+          } else if (route.name === 'Feed') {
+            iconName = focused ? 'format-list-bulleted' : 'format-list-bulleted';
           } else if (route.name === 'CreateEvent') {
             iconName = focused ? 'plus-circle' : 'plus-circle-outline';
           } else if (route.name === 'Messages') {
@@ -97,15 +117,20 @@ export const MainNavigator: React.FC = () => {
 
           return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#007AFF',
+        tabBarActiveTintColor: '#6200ee',
         tabBarInactiveTintColor: 'gray',
         headerShown: false,
       })}
     >
       <Tab.Screen
+        name="Map"
+        component={MapStack}
+        options={{ title: 'Mapa' }}
+      />
+      <Tab.Screen
         name="Feed"
         component={FeedStack}
-        options={{ title: 'Eventos' }}
+        options={{ title: 'Lista' }}
       />
       <Tab.Screen
         name="CreateEvent"
@@ -115,12 +140,12 @@ export const MainNavigator: React.FC = () => {
       <Tab.Screen
         name="Messages"
         component={MessagesStack}
-        options={{ title: 'Mensagens' }}
+        options={{ title: 'Chat' }}
       />
       <Tab.Screen
         name="Account"
         component={AccountStack}
-        options={{ title: 'Conta' }}
+        options={{ title: 'Perfil' }}
       />
     </Tab.Navigator>
   );

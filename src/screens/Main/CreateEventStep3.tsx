@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Platform } from 'react-native';
-import { TextInput, Button, Text } from 'react-native-paper';
+import { TextInput, Button, Text, HelperText } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { geocodeAddress } from '../../services/geocoding';
 
 interface CreateEventStep3Props {
-  onNext: (data: { eventDate: string; city: string; address: string }) => void;
+  onNext: (data: {
+    eventDate: string;
+    city: string;
+    address: string;
+    latitude?: number;
+    longitude?: number;
+  }) => void;
   loading?: boolean;
 }
 
@@ -14,6 +21,7 @@ export const CreateEventStep3: React.FC<CreateEventStep3Props> = ({ onNext, load
   const [city, setCity] = useState('');
   const [address, setAddress] = useState('');
   const [error, setError] = useState('');
+  const [geocoding, setGeocoding] = useState(false);
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
@@ -24,7 +32,7 @@ export const CreateEventStep3: React.FC<CreateEventStep3Props> = ({ onNext, load
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     setError('');
 
     if (!city.trim()) {
@@ -37,10 +45,34 @@ export const CreateEventStep3: React.FC<CreateEventStep3Props> = ({ onNext, load
       return;
     }
 
+    // Geocoding do endereço
+    setGeocoding(true);
+    let latitude: number | undefined;
+    let longitude: number | undefined;
+
+    try {
+      const result = await geocodeAddress(address.trim(), city.trim());
+      if (result) {
+        latitude = result.latitude;
+        longitude = result.longitude;
+        console.log('📍 Geocoding success:', result);
+      } else {
+        console.warn('⚠️ Geocoding returned no results');
+        // Continua sem coordenadas - evento não aparecerá no mapa
+      }
+    } catch (err) {
+      console.warn('⚠️ Geocoding failed:', err);
+      // Continua sem coordenadas
+    } finally {
+      setGeocoding(false);
+    }
+
     onNext({
       eventDate: eventDate.toISOString(),
       city: city.trim(),
       address: address.trim(),
+      latitude,
+      longitude,
     });
   };
 
@@ -51,6 +83,8 @@ export const CreateEventStep3: React.FC<CreateEventStep3Props> = ({ onNext, load
     hour: '2-digit',
     minute: '2-digit',
   });
+
+  const isLoading = loading || geocoding;
 
   return (
     <ScrollView style={styles.container}>
@@ -67,6 +101,7 @@ export const CreateEventStep3: React.FC<CreateEventStep3Props> = ({ onNext, load
           mode="outlined"
           onPress={() => setShowDatePicker(true)}
           style={styles.dateButton}
+          disabled={isLoading}
         >
           📅 {formattedDate}
         </Button>
@@ -77,6 +112,7 @@ export const CreateEventStep3: React.FC<CreateEventStep3Props> = ({ onNext, load
             mode="datetime"
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             onChange={handleDateChange}
+            minimumDate={new Date()}
           />
         )}
 
@@ -84,9 +120,10 @@ export const CreateEventStep3: React.FC<CreateEventStep3Props> = ({ onNext, load
           label="Cidade"
           value={city}
           onChangeText={setCity}
-          placeholder="Ex: São Paulo"
+          placeholder="Ex: Belo Horizonte"
           style={styles.input}
-          editable={!loading}
+          editable={!isLoading}
+          mode="outlined"
         />
 
         <TextInput
@@ -95,19 +132,24 @@ export const CreateEventStep3: React.FC<CreateEventStep3Props> = ({ onNext, load
           onChangeText={setAddress}
           placeholder="Ex: Rua das Flores, 123"
           style={styles.input}
-          editable={!loading}
+          editable={!isLoading}
+          mode="outlined"
         />
+
+        <HelperText type="info" visible style={styles.helperText}>
+          O endereço será usado para localizar o evento no mapa
+        </HelperText>
 
         {error && <Text style={styles.error}>{error}</Text>}
 
         <Button
           mode="contained"
           onPress={handleNext}
-          loading={loading}
-          disabled={loading}
+          loading={isLoading}
+          disabled={isLoading}
           style={styles.button}
         >
-          Próximo
+          {geocoding ? 'Localizando...' : 'Próximo'}
         </Button>
       </View>
     </ScrollView>
@@ -133,15 +175,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 24,
     textAlign: 'center',
+    color: '#666',
   },
   dateButton: {
     marginBottom: 16,
   },
   input: {
-    marginBottom: 16,
+    marginBottom: 8,
+  },
+  helperText: {
+    marginBottom: 8,
   },
   button: {
-    marginTop: 20,
+    marginTop: 12,
   },
   error: {
     color: '#d32f2f',

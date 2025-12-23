@@ -60,6 +60,8 @@ export interface Event {
   event_at: string;
   city: string;
   address: string;
+  latitude?: number;
+  longitude?: number;
   max_participants?: number;
   created_at: string;
   updated_at: string;
