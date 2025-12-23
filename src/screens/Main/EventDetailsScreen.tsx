@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Image, FlatList } from 'react-native';
-import { Text, Button, Card, Avatar } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Image, FlatList, Alert } from 'react-native';
+import { Text, Button, Card, Avatar, Chip } from 'react-native-paper';
 import { useEvents } from '../../hooks/useEvents';
 import { useParticipation } from '../../hooks/useParticipation';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingScreen } from '../../components/LoadingScreen';
+import { supabase } from '../../services/supabase';
 
 interface EventDetailsScreenProps {
   navigation: any;
@@ -15,8 +16,12 @@ export const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ navigati
   const { eventId } = route.params;
   const { user } = useAuth();
   const { eventByIdQuery } = useEvents();
-  const { eventParticipantsQuery, requestParticipationMutation, acceptRequestMutation, rejectRequestMutation } = useParticipation();
+  const { eventParticipantsQuery, requestParticipationMutation } = useParticipation();
+
   const [userParticipating, setUserParticipating] = useState(false);
+  const [hasPendingRequest, setHasPendingRequest] = useState(false);
+  const [requestStatus, setRequestStatus] = useState<string | null>(null);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
 
   const eventQuery = eventByIdQuery(eventId);
   const participantsQuery = eventParticipantsQuery(eventId);
@@ -24,11 +29,77 @@ export const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ navigati
   const event = eventQuery.data;
   const participants = participantsQuery.data || [];
 
+  const isCreator = user?.id === event?.creator_id;
+
+  // Verificar status de participação do usuário
   useEffect(() => {
-    if (event && user) {
-      setUserParticipating(event.creator_id === user.id || participants.some((p: any) => p.user_id === user.id));
+    const checkParticipationStatus = async () => {
+      if (!event || !user) return;
+
+      // Verifica se é o criador
+      if (event.creator_id === user.id) {
+        setUserParticipating(true);
+        return;
+      }
+
+      // Verifica se já é participante
+      const isParticipant = participants.some((p: any) => p.user_id === user.id);
+      if (isParticipant) {
+        setUserParticipating(true);
+        return;
+      }
+
+      // Verifica se tem solicitação pendente
+      const { data: request } = await supabase
+        .from('participation_requests')
+        .select('status')
+        .eq('event_id', eventId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (request) {
+        setRequestStatus(request.status);
+        setHasPendingRequest(request.status === 'pending');
+      }
+    };
+
+    checkParticipationStatus();
+  }, [event, participants, user, eventId]);
+
+  // Buscar quantidade de solicitações pendentes (para o criador)
+  useEffect(() => {
+    const fetchPendingRequests = async () => {
+      if (!isCreator) return;
+
+      const { count } = await supabase
+        .from('participation_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('event_id', eventId)
+        .eq('status', 'pending');
+
+      setPendingRequestsCount(count || 0);
+    };
+
+    fetchPendingRequests();
+  }, [isCreator, eventId]);
+
+  const handleRequestParticipation = async () => {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        requestParticipationMutation.mutate(eventId, {
+          onSuccess: () => resolve(),
+          onError: (error) => reject(error),
+        });
+      });
+
+      setHasPendingRequest(true);
+      setRequestStatus('pending');
+      Alert.alert('Solicitação Enviada!', 'O organizador do evento irá analisar sua solicitação.');
+    } catch (error: any) {
+      console.error('Erro ao solicitar:', error);
+      Alert.alert('Erro', error.message || 'Não foi possível enviar a solicitação.');
     }
-  }, [event, participants, user]);
+  };
 
   if (eventQuery.isLoading) {
     return <LoadingScreen message="Carregando evento..." />;
@@ -51,23 +122,72 @@ export const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ navigati
     minute: '2-digit',
   });
 
-  const isCreator = user?.id === event.creator_id;
-
-  const handleRequestParticipation = () => {
-    requestParticipationMutation.mutate(eventId);
-  };
-
   const renderParticipant = ({ item }: { item: any }) => (
     <Card style={styles.participantCard}>
       <Card.Content style={styles.participantContent}>
-        <Avatar.Image size={40} source={{ uri: item.user?.avatar_url }} />
+        {item.user?.avatar_url ? (
+          <Avatar.Image size={40} source={{ uri: item.user.avatar_url }} />
+        ) : (
+          <Avatar.Text size={40} label={item.user?.name?.charAt(0) || '?'} />
+        )}
         <View style={styles.participantInfo}>
-          <Text variant="bodyMedium">{item.user?.name}</Text>
-          <Text variant="bodySmall">@{item.user?.username}</Text>
+          <Text variant="bodyMedium">{item.user?.name || 'Usuário'}</Text>
+          <Text variant="bodySmall">@{item.user?.username || 'username'}</Text>
         </View>
       </Card.Content>
     </Card>
   );
+
+  const renderParticipationButton = () => {
+    if (isCreator) {
+      return (
+        <Button
+          mode="contained"
+          onPress={() => navigation.navigate('ManageRequests', { eventId, eventTitle: event.title })}
+          style={styles.button}
+          icon="account-group"
+        >
+          Gerenciar Solicitações {pendingRequestsCount > 0 ? `(${pendingRequestsCount})` : ''}
+        </Button>
+      );
+    }
+
+    if (userParticipating) {
+      return (
+        <Chip icon="check" style={styles.chip}>
+          Você está participando
+        </Chip>
+      );
+    }
+
+    if (requestStatus === 'pending') {
+      return (
+        <Chip icon="clock-outline" style={styles.chipPending}>
+          Solicitação pendente
+        </Chip>
+      );
+    }
+
+    if (requestStatus === 'rejected') {
+      return (
+        <Chip icon="close" style={styles.chipRejected}>
+          Solicitação recusada
+        </Chip>
+      );
+    }
+
+    return (
+      <Button
+        mode="contained"
+        onPress={handleRequestParticipation}
+        loading={requestParticipationMutation.isPending}
+        disabled={requestParticipationMutation.isPending}
+        style={styles.button}
+      >
+        Solicitar Participação
+      </Button>
+    );
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -92,34 +212,14 @@ export const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ navigati
           )}
         </View>
 
-        {!isCreator && !userParticipating && (
-          <Button
-            mode="contained"
-            onPress={handleRequestParticipation}
-            loading={requestParticipationMutation.isPending}
-            disabled={requestParticipationMutation.isPending}
-            style={styles.button}
-          >
-            Solicitar Participação
-          </Button>
-        )}
-
-        {userParticipating && (
-          <Button
-            mode="outlined"
-            disabled
-            style={styles.button}
-          >
-            ✓ Você está participando
-          </Button>
-        )}
+        {renderParticipationButton()}
 
         <Text variant="titleSmall" style={styles.sectionTitle}>
           Participantes ({participants.length})
         </Text>
 
         {participants.length === 0 ? (
-          <Text>Nenhum participante ainda</Text>
+          <Text style={styles.emptyText}>Nenhum participante ainda</Text>
         ) : (
           <FlatList
             data={participants}
@@ -162,10 +262,26 @@ const styles = StyleSheet.create({
   button: {
     marginBottom: 20,
   },
+  chip: {
+    marginBottom: 20,
+    backgroundColor: '#e8f5e9',
+  },
+  chipPending: {
+    marginBottom: 20,
+    backgroundColor: '#fff3e0',
+  },
+  chipRejected: {
+    marginBottom: 20,
+    backgroundColor: '#ffebee',
+  },
   sectionTitle: {
     fontWeight: 'bold',
     marginBottom: 12,
-    marginTop: 20,
+    marginTop: 8,
+  },
+  emptyText: {
+    color: '#666',
+    fontStyle: 'italic',
   },
   participantCard: {
     marginBottom: 8,

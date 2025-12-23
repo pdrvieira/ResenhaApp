@@ -168,6 +168,35 @@ CREATE INDEX IF NOT EXISTS idx_participation_requests_event_id ON public.partici
 CREATE INDEX IF NOT EXISTS idx_participation_requests_user_id ON public.participation_requests(user_id);
 
 
+-- 9. TABELA DE NOTIFICAÇÕES
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipient_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK (type IN ('new_request', 'request_accepted', 'request_rejected')),
+  payload JSONB,
+  read_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_recipient_id ON public.notifications(recipient_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_read_at ON public.notifications(read_at);
+
+-- RLS para notifications
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Usuário vê suas notificações" ON public.notifications;
+CREATE POLICY "Usuário vê suas notificações" ON public.notifications
+  FOR SELECT USING (auth.uid() = recipient_id);
+
+DROP POLICY IF EXISTS "Sistema pode criar notificações" ON public.notifications;
+CREATE POLICY "Sistema pode criar notificações" ON public.notifications
+  FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Usuário pode marcar como lida" ON public.notifications;
+CREATE POLICY "Usuário pode marcar como lida" ON public.notifications
+  FOR UPDATE USING (auth.uid() = recipient_id);
+
+
 -- =====================================================
 -- SUCESSO! Execute este script completo no SQL Editor
 -- =====================================================

@@ -10,6 +10,7 @@ import {
   ChatScreen,
   AccountScreen,
   SettingsScreen,
+  ManageRequestsScreen,
 } from '../screens/Main';
 
 const Stack = createNativeStackNavigator();
@@ -26,6 +27,11 @@ const FeedStack = () => (
       name="EventDetails"
       component={EventDetailsScreen}
       options={{ title: 'Detalhes do Evento' }}
+    />
+    <Stack.Screen
+      name="ManageRequests"
+      component={ManageRequestsScreen}
+      options={{ title: 'Solicitações' }}
     />
   </Stack.Navigator>
 );
