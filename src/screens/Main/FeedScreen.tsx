@@ -5,7 +5,7 @@ import { useEvents } from '../../hooks/useEvents';
 import { LoadingScreen } from '../../components/LoadingScreen';
 
 export const FeedScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const { events, eventsLoading, eventsError } = useEvents();
+  const { events, eventsLoading, eventsError, eventsQuery } = useEvents();
   const [searchText, setSearchText] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -17,7 +17,7 @@ export const FeedScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    // TODO: Refetch events
+    await eventsQuery.refetch();
     setRefreshing(false);
   };
 

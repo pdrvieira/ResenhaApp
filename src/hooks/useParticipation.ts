@@ -133,6 +133,12 @@ export const useParticipation = () => {
     participationRequestsQuery,
     eventParticipantsQuery,
     checkUserParticipation,
+    // Expor mutations completas para acesso a isPending
+    requestParticipationMutation,
+    acceptRequestMutation,
+    rejectRequestMutation,
+    leaveEventMutation,
+    // Atalhos para compatibilidade
     requestParticipation: requestParticipationMutation.mutate,
     requestParticipationLoading: requestParticipationMutation.isPending,
     acceptRequest: acceptRequestMutation.mutate,

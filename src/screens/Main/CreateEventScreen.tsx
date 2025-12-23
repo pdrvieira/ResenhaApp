@@ -57,20 +57,53 @@ export const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation
       // Por enquanto, usar URL da imagem local
       const imageUrl = eventData.photoUri;
 
-      createEvent({
-        title: eventData.title,
-        description: eventData.description,
-        image_url: imageUrl,
-        event_at: eventData.eventDate,
-        city: eventData.city,
-        address: eventData.address,
-        max_participants: maxParticipants,
+      await new Promise<void>((resolve, reject) => {
+        createEvent(
+          {
+            title: eventData.title,
+            description: eventData.description,
+            image_url: imageUrl,
+            event_at: eventData.eventDate,
+            city: eventData.city,
+            address: eventData.address,
+            max_participants: maxParticipants,
+          },
+          {
+            onSuccess: () => resolve(),
+            onError: (error) => reject(error),
+          }
+        );
       });
 
-      // Voltar para o feed
-      navigation.navigate('Feed');
+      // Feedback visual e navegação
+      const { Alert } = require('react-native');
+      Alert.alert(
+        'Evento Criado!',
+        'Seu evento foi criado com sucesso.',
+        [
+          {
+            text: 'Ver no Feed',
+            onPress: () => {
+              // Reset do step para permitir criar outro evento depois
+              setStep(1);
+              setEventData({
+                photoUri: '',
+                title: '',
+                description: '',
+                eventDate: '',
+                city: '',
+                address: '',
+                maxParticipants: undefined,
+              });
+              navigation.navigate('Feed');
+            },
+          },
+        ]
+      );
     } catch (error) {
       console.error('Erro ao criar evento:', error);
+      const { Alert } = require('react-native');
+      Alert.alert('Erro', 'Não foi possível criar o evento. Tente novamente.');
     } finally {
       setLoading(false);
     }

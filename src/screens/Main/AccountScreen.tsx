@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, Avatar, Button, Card } from 'react-native-paper';
 import { useAuth } from '../../contexts/AuthContext';
+import { useUserStats } from '../../hooks/useUserStats';
 import { LoadingScreen } from '../../components/LoadingScreen';
 
 interface AccountScreenProps {
@@ -10,6 +11,7 @@ interface AccountScreenProps {
 
 export const AccountScreen: React.FC<AccountScreenProps> = ({ navigation }) => {
   const { user, loading } = useAuth();
+  const { eventsCreatedCount, participationsCount, eventsCreatedLoading, participationsLoading } = useUserStats();
 
   if (loading) {
     return <LoadingScreen message="Carregando perfil..." />;
@@ -23,12 +25,18 @@ export const AccountScreen: React.FC<AccountScreenProps> = ({ navigation }) => {
     );
   }
 
+  // Avatar usa Avatar.Text como fallback (já implementado abaixo)
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.profileHeader}>
-        <Avatar.Image size={100} source={{ uri: user.avatar_url }} />
+        {user.avatar_url ? (
+          <Avatar.Image size={100} source={{ uri: user.avatar_url }} />
+        ) : (
+          <Avatar.Text size={100} label={user.name?.charAt(0) || user.username?.charAt(0) || '?'} />
+        )}
         <Text variant="headlineSmall" style={styles.name}>
-          {user.name}
+          {user.name || 'Sem nome'}
         </Text>
         <Text variant="bodyMedium">@{user.username}</Text>
         {user.city && <Text variant="bodySmall">{user.city}</Text>}
@@ -37,14 +45,18 @@ export const AccountScreen: React.FC<AccountScreenProps> = ({ navigation }) => {
       <View style={styles.statsContainer}>
         <Card style={styles.statCard}>
           <Card.Content style={styles.statContent}>
-            <Text variant="headlineSmall">0</Text>
+            <Text variant="headlineSmall">
+              {eventsCreatedLoading ? '...' : eventsCreatedCount}
+            </Text>
             <Text variant="bodySmall">Eventos Criados</Text>
           </Card.Content>
         </Card>
 
         <Card style={styles.statCard}>
           <Card.Content style={styles.statContent}>
-            <Text variant="headlineSmall">0</Text>
+            <Text variant="headlineSmall">
+              {participationsLoading ? '...' : participationsCount}
+            </Text>
             <Text variant="bodySmall">Participações</Text>
           </Card.Content>
         </Card>

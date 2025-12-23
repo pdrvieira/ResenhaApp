@@ -42,7 +42,7 @@ export const useEvents = () => {
 
   // Criar evento
   const createEventMutation = useMutation({
-    mutationFn: async (eventData: Omit<Event, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>) => {
+    mutationFn: async (eventData: Omit<Event, 'id' | 'creator_id' | 'created_at' | 'updated_at' | 'deleted_at'>) => {
       if (!user) throw new Error('Usuário não autenticado');
 
       const { data, error } = await supabase
@@ -99,6 +99,7 @@ export const useEvents = () => {
     events: eventsQuery.data || [],
     eventsLoading: eventsQuery.isLoading,
     eventsError: eventsQuery.error,
+    eventsQuery, // Expor query completa para refetch
     eventByIdQuery,
     createEvent: createEventMutation.mutate,
     createEventLoading: createEventMutation.isPending,
