@@ -260,6 +260,80 @@ CREATE POLICY "Criador pode registrar alterações" ON public.event_changes
   );
 
 
+-- 11. TABELA DE CONVITES PARA EVENTOS PRIVADOS
+CREATE TABLE IF NOT EXISTS public.event_invites (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  invite_code VARCHAR(20) NOT NULL UNIQUE,
+  created_by UUID NOT NULL REFERENCES public.users(id),
+  max_uses INTEGER, -- null = ilimitado
+  uses_count INTEGER DEFAULT 0,
+  expires_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_invites_code ON public.event_invites(invite_code);
+CREATE INDEX IF NOT EXISTS idx_event_invites_event_id ON public.event_invites(event_id);
+
+-- Tabela de quem usou o convite
+CREATE TABLE IF NOT EXISTS public.event_invite_uses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  invite_id UUID NOT NULL REFERENCES public.event_invites(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  used_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(invite_id, user_id)
+);
+
+-- RLS para event_invites
+ALTER TABLE public.event_invites ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Criador vê seus convites" ON public.event_invites;
+CREATE POLICY "Criador vê seus convites" ON public.event_invites
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.events 
+      WHERE events.id = event_invites.event_id 
+      AND events.creator_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "Criador pode criar convites" ON public.event_invites;
+CREATE POLICY "Criador pode criar convites" ON public.event_invites
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.events 
+      WHERE events.id = event_invites.event_id 
+      AND events.creator_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "Qualquer um pode buscar convite por código" ON public.event_invites;
+CREATE POLICY "Qualquer um pode buscar convite por código" ON public.event_invites
+  FOR SELECT USING (true);
+
+-- RLS para event_invite_uses
+ALTER TABLE public.event_invite_uses ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Usuário pode registrar uso de convite" ON public.event_invite_uses;
+CREATE POLICY "Usuário pode registrar uso de convite" ON public.event_invite_uses
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Usuário vê seus usos" ON public.event_invite_uses;
+CREATE POLICY "Usuário vê seus usos" ON public.event_invite_uses
+  FOR SELECT USING (auth.uid() = user_id);
+
+
+-- 12. FUNÇÃO PARA INCREMENTAR USOS DE CONVITE
+CREATE OR REPLACE FUNCTION increment_invite_uses(invite_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE public.event_invites
+  SET uses_count = uses_count + 1
+  WHERE id = invite_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
 -- =====================================================
 -- SUCESSO! Execute este script completo no SQL Editor
 -- =====================================================

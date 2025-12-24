@@ -9,10 +9,27 @@ const config = {
                 // ResetPassword moved to Root
             },
         },
+        // Main Navigator (após autenticação)
+        Main: {
+            screens: {
+                // Tab: Descobrir
+                Discover: {
+                    screens: {
+                        Invite: {
+                            path: 'invite/:inviteCode',
+                            parse: {
+                                inviteCode: (inviteCode: string) => inviteCode.toUpperCase(),
+                            },
+                        },
+                        EventDetails: 'event/:eventId',
+                    },
+                },
+            },
+        },
     },
 };
 
 export const linking: LinkingOptions<any> = {
-    prefixes: ['resenha://'],
+    prefixes: ['resenha://', 'https://resenhaapp.com'],
     config,
 };

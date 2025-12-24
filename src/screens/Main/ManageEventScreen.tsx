@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Alert, FlatList } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Alert, FlatList, Share } from 'react-native';
 import { Text, Card, Button, Divider, Avatar, Chip, IconButton, ActivityIndicator } from 'react-native-paper';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, Event } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useEventInvite } from '../../hooks/useEventInvite';
 
 interface ManageEventScreenProps {
     navigation: any;
@@ -39,6 +40,8 @@ export const ManageEventScreen: React.FC<ManageEventScreenProps> = ({ navigation
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const [refreshing, setRefreshing] = useState(false);
+    const [sharingInvite, setSharingInvite] = useState(false);
+    const { getOrCreateInvite, generateShareLink, loading: inviteLoading } = useEventInvite();
 
     // Query: Dados do evento
     const eventQuery = useQuery({
@@ -326,6 +329,43 @@ export const ManageEventScreen: React.FC<ManageEventScreenProps> = ({ navigation
                 </View>
             )}
 
+            {/* Compartilhar convite - só para eventos privados */}
+            {!isPast && event.audience === 'invite_only' && (
+                <Card style={styles.inviteCard}>
+                    <Card.Content>
+                        <Text variant="titleMedium" style={styles.inviteTitle}>🔗 Convite Privado</Text>
+                        <Text style={styles.inviteDescription}>
+                            Este é um evento privado. Compartilhe o link de convite para permitir que outros participem.
+                        </Text>
+                        <Button
+                            mode="contained"
+                            icon="share-variant"
+                            onPress={async () => {
+                                setSharingInvite(true);
+                                try {
+                                    const invite = await getOrCreateInvite(eventId);
+                                    if (invite) {
+                                        const link = generateShareLink(invite.invite_code);
+                                        await Share.share({
+                                            message: `🎉 Você foi convidado para ${event.title}!\n\nUse o código ${invite.invite_code} ou clique no link:\n${link}`,
+                                            title: `Convite: ${event.title}`,
+                                        });
+                                    }
+                                } catch (error) {
+                                    Alert.alert('Erro', 'Não foi possível gerar o convite');
+                                } finally {
+                                    setSharingInvite(false);
+                                }
+                            }}
+                            loading={sharingInvite || inviteLoading}
+                            style={styles.shareButton}
+                        >
+                            Compartilhar Convite
+                        </Button>
+                    </Card.Content>
+                </Card>
+            )}
+
             <Divider style={styles.divider} />
 
             {/* Participantes Confirmados */}
@@ -553,5 +593,25 @@ const styles = StyleSheet.create({
     },
     chipEnded: {
         backgroundColor: '#e0e0e0',
+    },
+    inviteCard: {
+        margin: 16,
+        marginTop: 8,
+        backgroundColor: '#f3e5f5',
+        borderLeftWidth: 4,
+        borderLeftColor: '#9c27b0',
+    },
+    inviteTitle: {
+        fontWeight: 'bold',
+        color: '#7b1fa2',
+        marginBottom: 8,
+    },
+    inviteDescription: {
+        color: '#6a1b9a',
+        fontSize: 14,
+        marginBottom: 12,
+    },
+    shareButton: {
+        backgroundColor: '#9c27b0',
     },
 });

@@ -11,3 +11,4 @@ export { ManageEventScreen } from './ManageEventScreen';
 export { EditEventScreen } from './EditEventScreen';
 export { MapScreen } from './MapScreen';
 export { MyEventsScreen } from './MyEventsScreen';
+export { InviteScreen } from './InviteScreen';

@@ -13,6 +13,7 @@ import {
   EditEventScreen,
   MapScreen,
   MyEventsScreen,
+  InviteScreen,
 } from '../screens/Main';
 
 const Stack = createNativeStackNavigator();
@@ -41,6 +42,11 @@ const DiscoverStack = () => (
       component={EditEventScreen}
       options={{ title: 'Editar Evento' }}
     />
+    <Stack.Screen
+      name="Invite"
+      component={InviteScreen}
+      options={{ title: 'Convite' }}
+    />
   </Stack.Navigator>
 );
 
@@ -66,6 +72,11 @@ const MyEventsStack = () => (
       name="EditEvent"
       component={EditEventScreen}
       options={{ title: 'Editar Evento' }}
+    />
+    <Stack.Screen
+      name="Invite"
+      component={InviteScreen}
+      options={{ title: 'Convite' }}
     />
   </Stack.Navigator>
 );

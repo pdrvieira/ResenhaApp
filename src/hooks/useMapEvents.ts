@@ -47,6 +47,7 @@ export const useMapEvents = (region: MapRegion | null) => {
             .gte('longitude', bbox.minLng)
             .lte('longitude', bbox.maxLng)
             .is('deleted_at', null)
+            .neq('audience', 'invite_only') // Eventos privados não aparecem no mapa
             .gte('event_at', new Date().toISOString()) // Apenas eventos futuros
             .order('event_at', { ascending: true })
             .limit(50); // Limite para performance
