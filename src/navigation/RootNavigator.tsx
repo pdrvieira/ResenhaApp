@@ -8,6 +8,7 @@ import { ResetPasswordScreen } from '../screens/Auth/ResetPasswordScreen';
 import { OnboardingNavigator } from './OnboardingNavigator';
 import { MainNavigator } from './MainNavigator';
 import { WalkthroughNavigator } from './WalkthroughNavigator';
+import { useNotificationEvents } from '../hooks/useNotificationEvents';
 
 const Stack = createNativeStackNavigator();
 
@@ -16,6 +17,9 @@ export const RootNavigator: React.FC = () => {
   const { isFirstLaunch, loading: appLoading } = useAppControl();
 
   const loading = authLoading || appLoading;
+
+  // Configurar handler de eventos de notificação (tap para navegar)
+  useNotificationEvents();
 
   // Log para debug
   React.useEffect(() => {

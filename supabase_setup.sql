@@ -187,7 +187,6 @@ CREATE INDEX IF NOT EXISTS idx_participation_requests_user_id ON public.particip
 
 
 -- 9. TABELA DE NOTIFICAÇÕES
-DROP TABLE IF EXISTS public.notifications;
 CREATE TABLE IF NOT EXISTS public.notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   recipient_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,

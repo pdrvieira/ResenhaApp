@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PaperProvider } from 'react-native-paper';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { AppControlProvider } from './src/contexts/AppControlContext';
+import { NotificationProvider } from './src/contexts/NotificationContext';
 import { RootNavigator, linking } from './src/navigation';
 
 const queryClient = new QueryClient();
@@ -15,11 +16,13 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <PaperProvider>
           <AuthProvider>
-            <AppControlProvider>
-              <NavigationContainer linking={linking}>
-                <RootNavigator />
-              </NavigationContainer>
-            </AppControlProvider>
+            <NotificationProvider>
+              <AppControlProvider>
+                <NavigationContainer linking={linking}>
+                  <RootNavigator />
+                </NavigationContainer>
+              </AppControlProvider>
+            </NotificationProvider>
           </AuthProvider>
         </PaperProvider>
       </QueryClientProvider>

@@ -2,6 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useNotifications } from '../contexts/NotificationContext';
 import {
   EventDetailsScreen,
   CreateEventScreen,
@@ -127,6 +128,8 @@ const AccountStack = () => (
 );
 
 export const MainNavigator: React.FC = () => {
+  const { badges } = useNotifications();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -166,7 +169,11 @@ export const MainNavigator: React.FC = () => {
       <Tab.Screen
         name="MyEvents"
         component={MyEventsStack}
-        options={{ title: 'Meus Eventos' }}
+        options={{
+          title: 'Meus Eventos',
+          tabBarBadge: badges.myEvents > 0 ? badges.myEvents : undefined,
+          tabBarBadgeStyle: { backgroundColor: '#f44336', fontSize: 10 },
+        }}
       />
       <Tab.Screen
         name="CreateEvent"

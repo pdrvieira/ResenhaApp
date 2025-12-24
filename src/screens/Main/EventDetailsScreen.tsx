@@ -6,6 +6,7 @@ import { useParticipation } from '../../hooks/useParticipation';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingScreen } from '../../components/LoadingScreen';
 import { supabase } from '../../services/supabase';
+import { notifyNewRequest } from '../../utils/notifications';
 
 interface EventDetailsScreenProps {
   navigation: any;
@@ -94,6 +95,18 @@ export const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ navigati
 
       setHasPendingRequest(true);
       setRequestStatus('pending');
+
+      // Enviar notificação para o criador
+      if (event && user) {
+        await notifyNewRequest(
+          event.creator_id,
+          eventId,
+          event.title,
+          user.name || user.username || 'Alguém',
+          user.id
+        );
+      }
+
       Alert.alert('Solicitação Enviada!', 'O organizador do evento irá analisar sua solicitação.');
     } catch (error: any) {
       console.error('Erro ao solicitar:', error);

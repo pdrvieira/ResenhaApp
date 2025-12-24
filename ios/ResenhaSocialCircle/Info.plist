@@ -22,6 +22,15 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>resenha</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
@@ -33,9 +42,9 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>O app precisa acessar sua localização para mostrar eventos próximos no mapa.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>O app precisa acessar sua localização para mostrar eventos próximos no mapa.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>O app precisa acessar sua localização para mostrar eventos próximos no mapa.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
@@ -53,14 +62,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>resenha</string>
-			</array>
-		</dict>
-	</array>
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
 </dict>
 </plist>

@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
-import { Text, Card, Chip, SegmentedButtons, ActivityIndicator, Avatar, Button } from 'react-native-paper';
+import { Text, Card, Chip, SegmentedButtons, ActivityIndicator, Avatar, Button, Badge } from 'react-native-paper';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, Event } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 
 type TabKey = 'created' | 'participating' | 'pending' | 'history';
 
@@ -13,6 +14,7 @@ interface MyEventsScreenProps {
 
 export const MyEventsScreen: React.FC<MyEventsScreenProps> = ({ navigation }) => {
     const { user } = useAuth();
+    const { badges, getEventBadge, markEventAsRead } = useNotifications();
     const [activeTab, setActiveTab] = useState<TabKey>('created');
     const [refreshing, setRefreshing] = useState(false);
 
@@ -32,6 +34,34 @@ export const MyEventsScreen: React.FC<MyEventsScreenProps> = ({ navigation }) =>
             return data as Event[];
         },
         enabled: !!user?.id,
+    });
+
+    // Query: Solicitações pendentes para eventos que criei (para badges)
+    const pendingRequestsByEventQuery = useQuery({
+        queryKey: ['pending_requests_by_event', user?.id],
+        queryFn: async () => {
+            if (!user?.id) return {};
+
+            // Buscar IDs dos eventos que criei
+            const eventIds = createdEventsQuery.data?.map(e => e.id) || [];
+            if (eventIds.length === 0) return {};
+
+            const { data, error } = await supabase
+                .from('participation_requests')
+                .select('event_id')
+                .in('event_id', eventIds)
+                .eq('status', 'pending');
+
+            if (error) throw error;
+
+            // Contar por evento
+            const counts: Record<string, number> = {};
+            for (const req of data || []) {
+                counts[req.event_id] = (counts[req.event_id] || 0) + 1;
+            }
+            return counts;
+        },
+        enabled: !!user?.id && (createdEventsQuery.data?.length || 0) > 0,
     });
 
     // Query: Eventos que participo
@@ -113,6 +143,7 @@ export const MyEventsScreen: React.FC<MyEventsScreenProps> = ({ navigation }) =>
             participatingEventsQuery.refetch(),
             pendingRequestsQuery.refetch(),
             historyEventsQuery.refetch(),
+            pendingRequestsByEventQuery.refetch(),
         ]);
         setRefreshing(false);
     }, []);
@@ -141,6 +172,8 @@ export const MyEventsScreen: React.FC<MyEventsScreenProps> = ({ navigation }) =>
 
     // Navegar para detalhes do evento
     const handleEventPress = (eventId: string) => {
+        // Marcar notificações do evento como lidas
+        markEventAsRead(eventId);
         navigation.navigate('EventDetails', { eventId });
     };
 
@@ -169,6 +202,11 @@ export const MyEventsScreen: React.FC<MyEventsScreenProps> = ({ navigation }) =>
 
         const status = getEventStatus();
 
+        // Badge de solicita\u00e7\u00f5es pendentes para este evento (apenas na tab "Criados")
+        const pendingCount = activeTab === 'created'
+            ? (pendingRequestsByEventQuery.data?.[event.id] || 0)
+            : 0;
+
         return (
             <Card
                 style={[styles.eventCard, isPast && styles.eventCardPast]}
@@ -176,7 +214,14 @@ export const MyEventsScreen: React.FC<MyEventsScreenProps> = ({ navigation }) =>
             >
                 <Card.Content>
                     <View style={styles.cardHeader}>
-                        <Text variant="titleMedium" style={styles.eventTitle} numberOfLines={1}>
+                        {/* Badge de solicita\u00e7\u00f5es pendentes */}
+                        {pendingCount > 0 && (
+                            <View style={styles.eventBadge}>
+                                <Badge size={20} style={styles.badgeNumber}>{pendingCount}</Badge>
+                            </View>
+                        )}
+
+                        <Text variant="titleMedium" style={[styles.eventTitle, pendingCount > 0 && { marginLeft: 8 }]} numberOfLines={1}>
                             {event.title}
                         </Text>
 
@@ -204,21 +249,6 @@ export const MyEventsScreen: React.FC<MyEventsScreenProps> = ({ navigation }) =>
                         📍 {event.city}
                     </Text>
 
-                    {/* Botão Gerenciar - só em Criados */}
-                    {activeTab === 'created' && (
-                        <Button
-                            mode="outlined"
-                            compact
-                            style={styles.manageButton}
-                            icon="cog"
-                            onPress={() => navigation.navigate('ManageEvent', {
-                                eventId: event.id,
-                                eventTitle: event.title
-                            })}
-                        >
-                            Gerenciar
-                        </Button>
-                    )}
 
                     {/* Botão Ver Detalhes - no Histórico */}
                     {activeTab === 'history' && (
@@ -237,12 +267,20 @@ export const MyEventsScreen: React.FC<MyEventsScreenProps> = ({ navigation }) =>
         );
     };
 
-    // Contadores para badges
+    // Contadores para badges (dados + notificações)
     const counts = {
         created: createdEventsQuery.data?.length || 0,
         participating: participatingEventsQuery.data?.length || 0,
         pending: pendingRequestsQuery.data?.length || 0,
         history: historyEventsQuery.data?.length || 0,
+    };
+
+    // Labels com indicador de notificação
+    const getTabLabel = (tab: TabKey, baseLabel: string, count: number, notifCount: number) => {
+        if (notifCount > 0) {
+            return `🔴 ${baseLabel} (${count})`;
+        }
+        return `${baseLabel} (${count})`;
     };
 
     return (
@@ -253,8 +291,14 @@ export const MyEventsScreen: React.FC<MyEventsScreenProps> = ({ navigation }) =>
                     value={activeTab}
                     onValueChange={(v) => setActiveTab(v as TabKey)}
                     buttons={[
-                        { value: 'created', label: `Criados (${counts.created})` },
-                        { value: 'participating', label: `Participo (${counts.participating})` },
+                        {
+                            value: 'created',
+                            label: getTabLabel('created', 'Criados', counts.created, badges.criados),
+                        },
+                        {
+                            value: 'participating',
+                            label: getTabLabel('participating', 'Participo', counts.participating, badges.participo),
+                        },
                     ]}
                     style={styles.segmented}
                 />
@@ -262,7 +306,10 @@ export const MyEventsScreen: React.FC<MyEventsScreenProps> = ({ navigation }) =>
                     value={activeTab}
                     onValueChange={(v) => setActiveTab(v as TabKey)}
                     buttons={[
-                        { value: 'pending', label: `Pendentes (${counts.pending})` },
+                        {
+                            value: 'pending',
+                            label: getTabLabel('pending', 'Pendentes', counts.pending, badges.pendentes),
+                        },
                         { value: 'history', label: `Histórico` },
                     ]}
                     style={styles.segmented}
@@ -370,5 +417,15 @@ const styles = StyleSheet.create({
     emptyText: {
         color: '#666',
         textAlign: 'center',
+    },
+    eventBadge: {
+        position: 'absolute',
+        top: -8,
+        left: -8,
+        zIndex: 1,
+    },
+    badgeNumber: {
+        backgroundColor: '#f44336',
+        color: '#fff',
     },
 });

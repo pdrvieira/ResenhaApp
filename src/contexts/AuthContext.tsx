@@ -402,14 +402,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const { error } = await supabase.auth.signOut();
 
       if (error) {
-        console.error('❌ Erro ao deslogar:', error);
-        throw error;
-      } else {
-        setSession(null);
-        setUser(null);
+        // Se o erro for de sessão inexistente, apenas loga e continua
+        if (error.message?.includes('session') || error.name === 'AuthSessionMissingError') {
+          console.log('⚠️ Sessão já inexistente, limpando estado local');
+        } else {
+          console.error('❌ Erro ao deslogar:', error);
+        }
       }
-    } catch (error) {
-      throw error;
+
+      // Sempre limpa o estado local, independente de erro
+      setSession(null);
+      setUser(null);
+    } catch (error: any) {
+      console.error('❌ Erro no signOut:', error);
+      // Mesmo com erro, limpa o estado local para permitir novo login
+      setSession(null);
+      setUser(null);
     }
   };
 

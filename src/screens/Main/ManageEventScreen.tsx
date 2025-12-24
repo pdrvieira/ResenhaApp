@@ -1,10 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Alert, FlatList, Share } from 'react-native';
 import { Text, Card, Button, Divider, Avatar, Chip, IconButton, ActivityIndicator } from 'react-native-paper';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, Event } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useEventInvite } from '../../hooks/useEventInvite';
+import { notifyRequestAccepted, notifyRequestRejected, notifyEventCancelled } from '../../utils/notifications';
+import { useNotifications } from '../../contexts/NotificationContext';
 
 interface ManageEventScreenProps {
     navigation: any;
@@ -42,6 +44,12 @@ export const ManageEventScreen: React.FC<ManageEventScreenProps> = ({ navigation
     const [refreshing, setRefreshing] = useState(false);
     const [sharingInvite, setSharingInvite] = useState(false);
     const { getOrCreateInvite, generateShareLink, loading: inviteLoading } = useEventInvite();
+    const { markEventAsRead } = useNotifications();
+
+    // Marcar notificações deste evento como lidas ao acessar
+    useEffect(() => {
+        markEventAsRead(eventId);
+    }, [eventId, markEventAsRead]);
 
     // Query: Dados do evento
     const eventQuery = useQuery({
@@ -103,6 +111,17 @@ export const ManageEventScreen: React.FC<ManageEventScreenProps> = ({ navigation
                 .from('event_participants')
                 .insert({ event_id: eventId, user_id: request.user_id });
             if (insertError) throw insertError;
+
+            // Enviar notificação para o solicitante
+            const event = eventQuery.data;
+            if (event && user) {
+                await notifyRequestAccepted(
+                    request.user_id,
+                    eventId,
+                    event.title,
+                    user.name || user.username || 'O organizador'
+                );
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['participation_requests', eventId] });
@@ -116,11 +135,23 @@ export const ManageEventScreen: React.FC<ManageEventScreenProps> = ({ navigation
     // Mutation: Rejeitar solicitação
     const rejectMutation = useMutation({
         mutationFn: async (requestId: string) => {
+            const request = requestsQuery.data?.find(r => r.id === requestId);
+
             const { error } = await supabase
                 .from('participation_requests')
                 .update({ status: 'rejected' })
                 .eq('id', requestId);
             if (error) throw error;
+
+            // Enviar notificação para o solicitante
+            const event = eventQuery.data;
+            if (event && request) {
+                await notifyRequestRejected(
+                    request.user_id,
+                    eventId,
+                    event.title
+                );
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['participation_requests', eventId] });
@@ -133,11 +164,26 @@ export const ManageEventScreen: React.FC<ManageEventScreenProps> = ({ navigation
     // Mutation: Cancelar evento
     const cancelEventMutation = useMutation({
         mutationFn: async () => {
+            // Buscar participantes antes de cancelar
+            const participants = participantsQuery.data || [];
+            const participantIds = participants.map(p => p.user_id);
+
             const { error } = await supabase
                 .from('events')
                 .update({ deleted_at: new Date().toISOString() })
                 .eq('id', eventId);
             if (error) throw error;
+
+            // Notificar todos os participantes
+            const event = eventQuery.data;
+            if (event && participantIds.length > 0 && user) {
+                await notifyEventCancelled(
+                    participantIds,
+                    eventId,
+                    event.title,
+                    user.name || user.username || 'O organizador'
+                );
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['my_events_created'] });

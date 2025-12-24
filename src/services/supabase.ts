@@ -103,7 +103,8 @@ export interface Message {
 export interface Notification {
   id: string;
   recipient_id: string;
-  type: 'new_request' | 'request_accepted' | 'request_rejected';
+  type: 'new_request' | 'request_accepted' | 'request_rejected' | 'event_updated' | 'event_cancelled';
+  event_id?: string;
   payload: Record<string, any>;
   read_at?: string;
   created_at: string;

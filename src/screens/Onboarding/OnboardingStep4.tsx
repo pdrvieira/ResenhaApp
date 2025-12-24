@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Button, Text, Switch } from 'react-native-paper';
+import { useNotificationPermission } from '../../hooks/useNotificationPermission';
 
 interface OnboardingStep4Props {
   onFinish: (preferences: { notificationsEnabled: boolean }) => void;
@@ -9,8 +10,23 @@ interface OnboardingStep4Props {
 
 export const OnboardingStep4: React.FC<OnboardingStep4Props> = ({ onFinish, loading = false }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const { requestPermission } = useNotificationPermission();
 
-  const handleFinish = () => {
+  // Solicitar permissão do sistema quando ativar notificações
+  const handleToggleNotifications = useCallback(async (value: boolean) => {
+    setNotificationsEnabled(value);
+
+    if (value) {
+      // Se ativou, solicitar permissão do sistema
+      await requestPermission();
+    }
+  }, [requestPermission]);
+
+  const handleFinish = async () => {
+    // Se notificações ativadas, garantir que temos permissão
+    if (notificationsEnabled) {
+      await requestPermission();
+    }
     onFinish({ notificationsEnabled });
   };
 
@@ -26,10 +42,15 @@ export const OnboardingStep4: React.FC<OnboardingStep4Props> = ({ onFinish, load
         </Text>
 
         <View style={styles.preferenceItem}>
-          <Text>Receber notificações push</Text>
+          <View style={styles.preferenceText}>
+            <Text style={styles.preferenceTitle}>Receber notificações push</Text>
+            <Text style={styles.preferenceDescription}>
+              Saiba quando alguém quer participar dos seus eventos
+            </Text>
+          </View>
           <Switch
             value={notificationsEnabled}
-            onValueChange={setNotificationsEnabled}
+            onValueChange={handleToggleNotifications}
             disabled={loading}
           />
         </View>
@@ -76,6 +97,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
     marginBottom: 24,
+  },
+  preferenceText: {
+    flex: 1,
+    marginRight: 12,
+  },
+  preferenceTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  preferenceDescription: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 4,
   },
   button: {
     marginTop: 20,
