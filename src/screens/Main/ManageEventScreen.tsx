@@ -336,11 +336,6 @@ export const ManageEventScreen: React.FC<ManageEventScreenProps> = ({ navigation
 
                     <View style={styles.tagsRow}>
                         <Chip compact style={styles.chip}>
-                            {event.entry_type === 'free' && '🆓 Gratuito'}
-                            {event.entry_type === 'paid' && `💰 R$ ${event.entry_price?.toFixed(2).replace('.', ',')}`}
-                            {event.entry_type === 'bring' && '🎒 Traga algo'}
-                        </Chip>
-                        <Chip compact style={styles.chip}>
                             {event.audience === 'everyone' && '👥 Aberto'}
                             {event.audience === 'adults_only' && '🔞 +18'}
                             {event.audience === 'invite_only' && '🔒 Convite'}

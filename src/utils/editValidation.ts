@@ -17,11 +17,9 @@ export interface EditableFieldsResult {
     event_at: EditValidationResult;
     address: EditValidationResult;
     city: EditValidationResult;
-    entry_type: EditValidationResult;
-    entry_price: EditValidationResult;
-    bring_what: EditValidationResult;
     audience: EditValidationResult;
     motivation: EditValidationResult;
+    bring_what: EditValidationResult;
     max_participants: EditValidationResult;
 }
 
@@ -33,11 +31,9 @@ export const FIELD_LABELS: Record<string, string> = {
     event_at: 'Data/Hora',
     address: 'Endereço',
     city: 'Cidade',
-    entry_type: 'Tipo de Entrada',
-    entry_price: 'Preço',
-    bring_what: 'O que trazer',
     audience: 'Público',
     motivation: 'Motivação',
+    bring_what: 'O que levar',
     max_participants: 'Limite de participantes',
 };
 
@@ -84,16 +80,6 @@ export const getEditableFields = (
             ? { allowed: true }
             : { allowed: false, reason: `Não é possível alterar a cidade faltando menos de ${MIN_HOURS_FOR_LOCATION_CHANGE}h para o evento` },
 
-        // ❌ Tipo de entrada: bloqueado após primeira confirmação
-        entry_type: hasParticipants
-            ? { allowed: false, reason: 'Não é possível alterar o tipo de entrada após ter participantes confirmados' }
-            : { allowed: true },
-
-        // ❌ Preço: pode diminuir, nunca aumentar após confirmação
-        entry_price: hasParticipants
-            ? { allowed: false, reason: 'Não é possível alterar o preço após ter participantes confirmados' }
-            : { allowed: true },
-
         // ⚠️ Público: não pode relaxar restrições após confirmações
         audience: hasParticipants
             ? { allowed: false, reason: 'Não é possível alterar as restrições de público após ter participantes' }
@@ -126,32 +112,6 @@ export const validateMaxParticipants = (
 };
 
 /**
- * Valida se o preço pode ser alterado
- */
-export const validatePriceChange = (
-    oldPrice: number | undefined,
-    newPrice: number | undefined,
-    hasParticipants: boolean
-): EditValidationResult => {
-    if (!hasParticipants) {
-        return { allowed: true };
-    }
-
-    // Sem participantes, qualquer mudança é permitida
-    const oldVal = oldPrice || 0;
-    const newVal = newPrice || 0;
-
-    if (newVal > oldVal) {
-        return {
-            allowed: false,
-            reason: 'Não é possível aumentar o preço após ter participantes confirmados',
-        };
-    }
-
-    return { allowed: true };
-};
-
-/**
  * Detecta quais campos foram alterados
  */
 export const getChangedFields = (
@@ -162,8 +122,7 @@ export const getChangedFields = (
 
     const fieldsToCheck: (keyof Event)[] = [
         'title', 'description', 'image_url', 'event_at', 'address', 'city',
-        'entry_type', 'entry_price', 'bring_what', 'audience', 'motivation',
-        'max_participants', 'latitude', 'longitude'
+        'audience', 'motivation', 'bring_what', 'max_participants', 'latitude', 'longitude'
     ];
 
     for (const field of fieldsToCheck) {
@@ -192,12 +151,14 @@ export const formatFieldValue = (field: string, value: any): string => {
                 hour: '2-digit',
                 minute: '2-digit',
             });
-        case 'entry_price':
-            return `R$ ${Number(value).toFixed(2).replace('.', ',')}`;
-        case 'entry_type':
-            return { free: 'Gratuito', paid: 'Pago', bring: 'Traga algo' }[value] || value;
-        case 'audience':
-            return { everyone: 'Todos', adults_only: '+18', invite_only: 'Somente convidados' }[value] || value;
+        case 'audience': {
+            const audienceLabels: Record<string, string> = {
+                everyone: 'Todos',
+                adults_only: '+18',
+                invite_only: 'Somente convidados'
+            };
+            return audienceLabels[value as string] || String(value);
+        }
         case 'max_participants':
             return value ? `${value} vagas` : 'Sem limite';
         default:

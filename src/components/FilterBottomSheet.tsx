@@ -4,7 +4,6 @@ import { Text, Button, TextInput, Chip, Divider, IconButton } from 'react-native
 import {
     MapFilters,
     FILTER_LABELS,
-    EntryTypeFilter,
     AudienceFilter,
     DateRangeFilter,
     RadiusFilter,
@@ -40,7 +39,6 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
     activeCount,
 }) => {
     const radiusOptions: RadiusFilter[] = [null, 5, 10, 25, 50];
-    const entryOptions: EntryTypeFilter[] = ['all', 'free', 'paid', 'bring'];
     const audienceOptions: AudienceFilter[] = ['all', 'everyone', 'adults_only', 'invite_only'];
     const dateOptions: DateRangeFilter[] = ['all', 'today', 'tomorrow', 'week', 'month'];
 
@@ -101,24 +99,6 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
                                     mode={filters.radius === radius ? 'flat' : 'outlined'}
                                 >
                                     {FILTER_LABELS.radius[String(radius) as keyof typeof FILTER_LABELS.radius]}
-                                </Chip>
-                            ))}
-                        </FilterSection>
-
-                        <Divider style={styles.divider} />
-
-                        {/* Tipo de Entrada */}
-                        <FilterSection title="💰 Tipo de Entrada">
-                            {entryOptions.map((entry) => (
-                                <Chip
-                                    key={entry}
-                                    selected={filters.entryType === entry}
-                                    onPress={() => onUpdateFilter('entryType', entry)}
-                                    style={styles.chip}
-                                    showSelectedCheck={false}
-                                    mode={filters.entryType === entry ? 'flat' : 'outlined'}
-                                >
-                                    {FILTER_LABELS.entryType[entry]}
                                 </Chip>
                             ))}
                         </FilterSection>

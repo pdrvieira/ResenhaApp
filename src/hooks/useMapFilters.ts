@@ -56,11 +56,6 @@ export const useMapFilters = ({ events, userLocation }: UseMapFiltersProps): Use
                 if (distance > filters.radius) return false;
             }
 
-            // Filtro de tipo de entrada
-            if (filters.entryType !== 'all') {
-                if (event.entry_type !== filters.entryType) return false;
-            }
-
             // Filtro de público
             if (filters.audience !== 'all') {
                 if (event.audience !== filters.audience) return false;

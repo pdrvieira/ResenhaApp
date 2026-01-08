@@ -6,7 +6,7 @@ import { useParticipation } from '../../hooks/useParticipation';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { LoadingScreen } from '../../components/LoadingScreen';
-import { supabase } from '../../services/supabase';
+import { supabase, BRING_WHAT_OPTIONS, BringWhatType } from '../../services/supabase';
 import { notifyNewRequest } from '../../utils/notifications';
 
 interface EventDetailsScreenProps {
@@ -256,26 +256,9 @@ export const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ navigati
           )}
         </View>
 
+
         {/* Detalhes do Evento */}
         <View style={styles.detailsSection}>
-          {/* Tipo de entrada */}
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>💰 Entrada:</Text>
-            <Text style={styles.detailValue}>
-              {event.entry_type === 'free' && 'Gratuito'}
-              {event.entry_type === 'paid' && `R$ ${event.entry_price?.toFixed(2).replace('.', ',')}`}
-              {event.entry_type === 'bring' && 'Traga algo'}
-            </Text>
-          </View>
-
-          {/* O que trazer */}
-          {event.entry_type === 'bring' && event.bring_what && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>🎒 Trazer:</Text>
-              <Text style={styles.detailValue}>{event.bring_what}</Text>
-            </View>
-          )}
-
           {/* Público */}
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>👤 Público:</Text>
@@ -291,6 +274,16 @@ export const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ navigati
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>💭 Motivação:</Text>
               <Text style={styles.detailValue}>{event.motivation}</Text>
+            </View>
+          )}
+
+          {/* O que levar */}
+          {event.bring_what && event.bring_what !== 'nothing' && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>🍾 O que levar:</Text>
+              <Text style={styles.detailValue}>
+                {BRING_WHAT_OPTIONS[event.bring_what as BringWhatType]?.shortLabel || event.bring_what}
+              </Text>
             </View>
           )}
         </View>

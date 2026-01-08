@@ -2,16 +2,14 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Image, Alert } from 'react-native';
 import { Button, Text, TextInput, Card, Divider, RadioButton, HelperText } from 'react-native-paper';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import { BRING_WHAT_OPTIONS, BringWhatType } from '../../services/supabase';
 
-type EntryType = 'free' | 'paid' | 'bring';
 type Audience = 'everyone' | 'adults_only' | 'invite_only';
 
 interface Step3Data {
-  entryType: EntryType;
-  entryPrice?: number;
-  bringWhat?: string;
   audience: Audience;
   motivation?: string;
+  bringWhat: BringWhatType;
   photoUri?: string;
   maxParticipants?: number;
 }
@@ -38,36 +36,14 @@ export const CreateEventStep3: React.FC<CreateEventStep3Props> = ({
   loading = false
 }) => {
   // Estados principais
-  const [entryType, setEntryType] = useState<EntryType>('free');
-  const [entryPrice, setEntryPrice] = useState('');
-
-  // Formatar preço no formato brasileiro (123,45)
-  const formatPrice = (value: string): string => {
-    // Remove tudo que não é número
-    let numbers = value.replace(/\D/g, '');
-
-    if (numbers === '') return '';
-
-    // Limita a 7 dígitos (99999,99 = R$ 99.999,99)
-    if (numbers.length > 7) numbers = numbers.slice(0, 7);
-
-    // Converte para centavos e formata
-    const cents = parseInt(numbers, 10);
-    const reais = (cents / 100).toFixed(2);
-
-    // Formata para padrão brasileiro
-    return reais.replace('.', ',');
-  };
-  const [bringWhat, setBringWhat] = useState('');
   const [audience, setAudience] = useState<Audience>('everyone');
   const [motivation, setMotivation] = useState('');
+  const [bringWhat, setBringWhat] = useState<BringWhatType>('nothing');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [maxParticipants, setMaxParticipants] = useState('');
 
   // Erros
   const [errors, setErrors] = useState<{
-    entryPrice?: string;
-    bringWhat?: string;
     maxParticipants?: string;
   }>({});
 
@@ -98,31 +74,6 @@ export const CreateEventStep3: React.FC<CreateEventStep3Props> = ({
   const validate = (): boolean => {
     const newErrors: typeof errors = {};
 
-    // Validar preço se for pago
-    if (entryType === 'paid') {
-      if (!entryPrice.trim() || entryPrice === '0,00') {
-        newErrors.entryPrice = 'Informe o valor do ingresso';
-      } else {
-        const price = parseFloat(entryPrice.replace(',', '.'));
-        if (isNaN(price) || price <= 0) {
-          newErrors.entryPrice = 'Valor deve ser maior que R$ 0,00';
-        } else if (price < 1) {
-          newErrors.entryPrice = 'Valor mínimo: R$ 1,00';
-        } else if (price > 10000) {
-          newErrors.entryPrice = 'Valor máximo: R$ 10.000,00';
-        }
-      }
-    }
-
-    // Validar o que trazer
-    if (entryType === 'bring') {
-      if (!bringWhat.trim()) {
-        newErrors.bringWhat = 'Informe o que os participantes devem trazer';
-      } else if (bringWhat.trim().length < 3) {
-        newErrors.bringWhat = 'Seja mais específico';
-      }
-    }
-
     // Validar limite de participantes
     if (maxParticipants.trim()) {
       const num = parseInt(maxParticipants, 10);
@@ -150,11 +101,9 @@ export const CreateEventStep3: React.FC<CreateEventStep3Props> = ({
           text: 'Criar Evento',
           onPress: () => {
             onFinish({
-              entryType,
-              entryPrice: entryType === 'paid' ? parseFloat(entryPrice.replace(',', '.')) : undefined,
-              bringWhat: entryType === 'bring' ? bringWhat.trim() : undefined,
               audience,
               motivation: motivation.trim() || undefined,
+              bringWhat,
               photoUri: photoUri || undefined,
               maxParticipants: maxParticipants ? parseInt(maxParticipants, 10) : undefined,
             });
@@ -195,61 +144,6 @@ export const CreateEventStep3: React.FC<CreateEventStep3Props> = ({
         </Card.Content>
       </Card>
 
-      {/* Tipo de Entrada */}
-      <Text style={styles.sectionTitle}>💰 Tipo de Entrada *</Text>
-      <Card style={styles.optionCard}>
-        <RadioButton.Group onValueChange={(v) => setEntryType(v as EntryType)} value={entryType}>
-          <RadioButton.Item label="Gratuito" value="free" />
-          <RadioButton.Item label="Pago (com valor definido)" value="paid" />
-          <RadioButton.Item label="Traga algo (bebida, comida, etc)" value="bring" />
-        </RadioButton.Group>
-      </Card>
-
-      {/* Valor se pago */}
-      {entryType === 'paid' && (
-        <View style={styles.conditionalField}>
-          <TextInput
-            label="Valor do ingresso *"
-            value={entryPrice}
-            onChangeText={(t) => {
-              const formatted = formatPrice(t);
-              setEntryPrice(formatted);
-              if (errors.entryPrice) setErrors({ ...errors, entryPrice: undefined });
-            }}
-            placeholder="0,00"
-            keyboardType="number-pad"
-            mode="outlined"
-            error={!!errors.entryPrice}
-            left={<TextInput.Affix text="R$" />}
-            maxLength={9} // 99.999,99
-          />
-          <HelperText type={errors.entryPrice ? 'error' : 'info'} visible>
-            {errors.entryPrice || 'Valor entre R$ 1,00 e R$ 10.000,00'}
-          </HelperText>
-        </View>
-      )}
-
-      {/* O que trazer */}
-      {entryType === 'bring' && (
-        <View style={styles.conditionalField}>
-          <TextInput
-            label="O que trazer? *"
-            value={bringWhat}
-            onChangeText={(t) => {
-              setBringWhat(t);
-              if (errors.bringWhat) setErrors({ ...errors, bringWhat: undefined });
-            }}
-            placeholder="Ex: 1 garrafa de bebida ou petiscos"
-            mode="outlined"
-            error={!!errors.bringWhat}
-            maxLength={100}
-          />
-          <HelperText type="error" visible={!!errors.bringWhat}>
-            {errors.bringWhat}
-          </HelperText>
-        </View>
-      )}
-
       {/* Público */}
       <Text style={styles.sectionTitle}>👥 Quem pode participar? *</Text>
       <Card style={styles.optionCard}>
@@ -273,6 +167,16 @@ export const CreateEventStep3: React.FC<CreateEventStep3Props> = ({
       <HelperText type="info" visible>
         Ajuda os participantes a entenderem o propósito
       </HelperText>
+
+      {/* O que levar */}
+      <Text style={styles.sectionTitle}>🍾 O que levar?</Text>
+      <Card style={styles.optionCard}>
+        <RadioButton.Group onValueChange={(v) => setBringWhat(v as BringWhatType)} value={bringWhat}>
+          {Object.entries(BRING_WHAT_OPTIONS).map(([key, value]) => (
+            <RadioButton.Item key={key} label={value.label} value={key} />
+          ))}
+        </RadioButton.Group>
+      </Card>
 
       {/* Foto */}
       <Text style={styles.sectionTitle}>📷 Foto do Evento (opcional)</Text>
@@ -384,9 +288,6 @@ const styles = StyleSheet.create({
   },
   optionCard: {
     backgroundColor: '#fafafa',
-  },
-  conditionalField: {
-    marginTop: 8,
   },
   input: {
     marginBottom: 0,

@@ -63,10 +63,7 @@ export interface Event {
   latitude?: number;
   longitude?: number;
   max_participants?: number;
-  // Novos campos de detalhes
-  entry_type: 'free' | 'paid' | 'bring';
-  entry_price?: number;
-  bring_what?: string;
+  bring_what?: 'nothing' | 'drinks' | 'food' | 'dessert' | 'ice' | 'anything';
   audience: 'everyone' | 'adults_only' | 'invite_only';
   motivation?: string;
   // Timestamps
@@ -74,6 +71,18 @@ export interface Event {
   updated_at: string;
   deleted_at?: string;
 }
+
+// Labels para bring_what
+export const BRING_WHAT_OPTIONS = {
+  nothing: { label: '🆓 Nada', shortLabel: 'Nada' },
+  drinks: { label: '🍺 Bebidas', shortLabel: 'Bebidas' },
+  food: { label: '🍕 Comida/Petiscos', shortLabel: 'Comida' },
+  dessert: { label: '🍰 Sobremesa', shortLabel: 'Sobremesa' },
+  ice: { label: '🧊 Gelo', shortLabel: 'Gelo' },
+  anything: { label: '🎁 Algo para compartilhar', shortLabel: 'Algo' },
+} as const;
+
+export type BringWhatType = keyof typeof BRING_WHAT_OPTIONS;
 
 export interface ParticipationRequest {
   id: string;

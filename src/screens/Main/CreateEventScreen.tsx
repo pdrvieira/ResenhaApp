@@ -5,12 +5,12 @@ import { LoadingScreen } from '../../components/LoadingScreen';
 import { CreateEventStep1 } from './CreateEventStep1';
 import { CreateEventStep2 } from './CreateEventStep2';
 import { CreateEventStep3 } from './CreateEventStep3';
+import { BringWhatType } from '../../services/supabase';
 
 interface CreateEventScreenProps {
   navigation: any;
 }
 
-type EntryType = 'free' | 'paid' | 'bring';
 type Audience = 'everyone' | 'adults_only' | 'invite_only';
 
 interface EventFormData {
@@ -24,11 +24,9 @@ interface EventFormData {
   latitude: number;
   longitude: number;
   // Step 3
-  entryType: EntryType;
-  entryPrice?: number;
-  bringWhat?: string;
   audience: Audience;
   motivation?: string;
+  bringWhat: BringWhatType;
   photoUri?: string;
   maxParticipants?: number;
 }
@@ -66,11 +64,9 @@ export const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation
 
   // Step 3: Finalização
   const handleStep3Complete = async (data: {
-    entryType: EntryType;
-    entryPrice?: number;
-    bringWhat?: string;
     audience: Audience;
     motivation?: string;
+    bringWhat: BringWhatType;
     photoUri?: string;
     maxParticipants?: number;
   }) => {
@@ -91,9 +87,7 @@ export const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation
             latitude: finalData.latitude,
             longitude: finalData.longitude,
             max_participants: finalData.maxParticipants,
-            entry_type: finalData.entryType,
-            entry_price: finalData.entryPrice,
-            bring_what: finalData.bringWhat,
+            bring_what: finalData.bringWhat !== 'nothing' ? finalData.bringWhat : undefined,
             audience: finalData.audience,
             motivation: finalData.motivation,
           },

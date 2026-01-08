@@ -33,14 +33,6 @@ export const EventPreviewCard: React.FC<EventPreviewCardProps> = ({
         event.longitude
     );
 
-    // Formatar tipo de entrada
-    const getEntryLabel = () => {
-        if (event.entry_type === 'free') return '🆓 Gratuito';
-        if (event.entry_type === 'paid') return `💰 R$ ${event.entry_price?.toFixed(2).replace('.', ',')}`;
-        if (event.entry_type === 'bring') return '🎒 Traga algo';
-        return null;
-    };
-
     return (
         <Surface style={styles.container} elevation={4}>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -67,18 +59,13 @@ export const EventPreviewCard: React.FC<EventPreviewCardProps> = ({
                         </Text>
                     )}
 
-                    <View style={styles.tagsRow}>
-                        {getEntryLabel() && (
-                            <Chip compact style={styles.tag} textStyle={styles.tagText}>
-                                {getEntryLabel()}
-                            </Chip>
-                        )}
-                        {event.audience === 'adults_only' && (
+                    {event.audience === 'adults_only' && (
+                        <View style={styles.tagsRow}>
                             <Chip compact style={styles.tagAdult} textStyle={styles.tagText}>
                                 🔞 +18
                             </Chip>
-                        )}
-                    </View>
+                        </View>
+                    )}
                 </View>
             </View>
 

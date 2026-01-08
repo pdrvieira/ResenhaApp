@@ -7,6 +7,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useEditEvent } from '../../hooks/useEditEvent';
 import { FIELD_LABELS, getHoursUntilEvent } from '../../utils/editValidation';
+import { BRING_WHAT_OPTIONS, BringWhatType } from '../../services/supabase';
 
 interface EditEventScreenProps {
     navigation: any;
@@ -28,13 +29,11 @@ export const EditEventScreen: React.FC<EditEventScreenProps> = ({ navigation, ro
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [motivation, setMotivation] = useState('');
-    const [bringWhat, setBringWhat] = useState('');
+    const [bringWhat, setBringWhat] = useState<BringWhatType>('nothing');
     const [maxParticipants, setMaxParticipants] = useState('');
     const [eventDate, setEventDate] = useState(new Date());
     const [address, setAddress] = useState('');
     const [city, setCity] = useState('');
-    const [entryType, setEntryType] = useState<'free' | 'paid' | 'bring'>('free');
-    const [entryPrice, setEntryPrice] = useState('');
     const [audience, setAudience] = useState<'everyone' | 'adults_only' | 'invite_only'>('everyone');
 
     // Estado do date picker
@@ -47,26 +46,14 @@ export const EditEventScreen: React.FC<EditEventScreenProps> = ({ navigation, ro
             setTitle(event.title);
             setDescription(event.description);
             setMotivation(event.motivation || '');
-            setBringWhat(event.bring_what || '');
+            setBringWhat((event.bring_what as BringWhatType) || 'nothing');
             setMaxParticipants(event.max_participants?.toString() || '');
             setEventDate(new Date(event.event_at));
             setAddress(event.address);
             setCity(event.city);
-            setEntryType(event.entry_type || 'free');
-            setEntryPrice(event.entry_price?.toFixed(2).replace('.', ',') || '');
             setAudience(event.audience || 'everyone');
         }
     }, [event]);
-
-    // Formatar preço
-    const formatPrice = (value: string): string => {
-        let numbers = value.replace(/\D/g, '');
-        if (numbers === '') return '';
-        if (numbers.length > 7) numbers = numbers.slice(0, 7);
-        const cents = parseInt(numbers, 10);
-        const reais = (cents / 100).toFixed(2);
-        return reais.replace('.', ',');
-    };
 
     // Salvar alterações
     const handleSave = async () => {
@@ -79,7 +66,12 @@ export const EditEventScreen: React.FC<EditEventScreenProps> = ({ navigation, ro
             if (title !== event.title) updates.title = title;
             if (description !== event.description) updates.description = description;
             if (motivation !== (event.motivation || '')) updates.motivation = motivation || null;
-            if (bringWhat !== (event.bring_what || '')) updates.bring_what = bringWhat || null;
+
+            // bring_what: salvar como null se 'nothing', ou o valor se diferente
+            const currentBringWhat = (event.bring_what as BringWhatType) || 'nothing';
+            if (bringWhat !== currentBringWhat) {
+                updates.bring_what = bringWhat === 'nothing' ? null : bringWhat;
+            }
 
             // Max participantes
             const newMaxParticipants = maxParticipants ? parseInt(maxParticipants, 10) : null;
@@ -105,14 +97,7 @@ export const EditEventScreen: React.FC<EditEventScreenProps> = ({ navigation, ro
                 if (city !== event.city) updates.city = city;
             }
 
-            // Tipo de entrada (se editável)
-            if (editableFields?.entry_type.allowed) {
-                if (entryType !== event.entry_type) updates.entry_type = entryType;
-                if (entryType === 'paid') {
-                    const price = parseFloat(entryPrice.replace(',', '.'));
-                    if (price !== event.entry_price) updates.entry_price = price;
-                }
-            }
+
 
             // Público (se editável)
             if (editableFields?.audience.allowed) {
@@ -292,6 +277,16 @@ export const EditEventScreen: React.FC<EditEventScreenProps> = ({ navigation, ro
                 placeholder: 'Ex: Celebrar o aniversário do João'
             })}
 
+            {/* O que levar */}
+            <Text style={styles.sectionTitle}>🍾 O que levar?</Text>
+            <Card style={styles.optionCard}>
+                <RadioButton.Group onValueChange={(v) => setBringWhat(v as BringWhatType)} value={bringWhat}>
+                    {Object.entries(BRING_WHAT_OPTIONS).map(([key, value]) => (
+                        <RadioButton.Item key={key} label={value.label} value={key} />
+                    ))}
+                </RadioButton.Group>
+            </Card>
+
             <Divider style={styles.divider} />
 
             {/* Data e Hora */}
@@ -395,69 +390,7 @@ export const EditEventScreen: React.FC<EditEventScreenProps> = ({ navigation, ro
 
             <Divider style={styles.divider} />
 
-            {/* Tipo de Entrada */}
-            <Text variant="titleMedium" style={styles.sectionTitle}>
-                💰 Tipo de Entrada
-            </Text>
 
-            <View style={styles.fieldContainer}>
-                {!editableFields.entry_type.allowed && (
-                    <View style={styles.lockedBanner}>
-                        <Chip compact style={styles.lockedChip} icon="lock">Bloqueado</Chip>
-                        <HelperText type="info" visible style={styles.lockedReason}>
-                            {editableFields.entry_type.reason}
-                        </HelperText>
-                    </View>
-                )}
-
-                <RadioButton.Group
-                    onValueChange={(v) => editableFields.entry_type.allowed && setEntryType(v as any)}
-                    value={entryType}
-                >
-                    <RadioButton.Item
-                        label="Gratuito"
-                        value="free"
-                        disabled={!editableFields.entry_type.allowed}
-                    />
-                    <RadioButton.Item
-                        label="Pago"
-                        value="paid"
-                        disabled={!editableFields.entry_type.allowed}
-                    />
-                    <RadioButton.Item
-                        label="Traga algo"
-                        value="bring"
-                        disabled={!editableFields.entry_type.allowed}
-                    />
-                </RadioButton.Group>
-
-                {entryType === 'paid' && (
-                    <TextInput
-                        label="Valor (R$)"
-                        value={entryPrice}
-                        onChangeText={(t) => setEntryPrice(formatPrice(t))}
-                        mode="outlined"
-                        keyboardType="number-pad"
-                        disabled={!editableFields.entry_price.allowed}
-                        left={<TextInput.Affix text="R$" />}
-                        style={styles.priceInput}
-                    />
-                )}
-
-                {entryType === 'bring' && (
-                    <TextInput
-                        label="O que trazer?"
-                        value={bringWhat}
-                        onChangeText={setBringWhat}
-                        mode="outlined"
-                        placeholder="Ex: 1 garrafa de bebida"
-                        maxLength={100}
-                        style={styles.priceInput}
-                    />
-                )}
-            </View>
-
-            <Divider style={styles.divider} />
 
             {/* Público */}
             <Text variant="titleMedium" style={styles.sectionTitle}>
@@ -644,5 +577,9 @@ const styles = StyleSheet.create({
     button: {
         flex: 1,
         borderRadius: 8,
+    },
+    optionCard: {
+        backgroundColor: '#fafafa',
+        marginBottom: 8,
     },
 });
