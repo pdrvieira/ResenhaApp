@@ -4,6 +4,7 @@ import { Text, Button, Card, Avatar, Chip } from 'react-native-paper';
 import { useEvents } from '../../hooks/useEvents';
 import { useParticipation } from '../../hooks/useParticipation';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 import { LoadingScreen } from '../../components/LoadingScreen';
 import { supabase } from '../../services/supabase';
 import { notifyNewRequest } from '../../utils/notifications';
@@ -18,6 +19,7 @@ export const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ navigati
   const { user } = useAuth();
   const { eventByIdQuery } = useEvents();
   const { eventParticipantsQuery, requestParticipationMutation } = useParticipation();
+  const { markTypeAsReadForEvent } = useNotifications();
 
   const [userParticipating, setUserParticipating] = useState(false);
   const [hasPendingRequest, setHasPendingRequest] = useState(false);
@@ -31,6 +33,14 @@ export const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ navigati
   const participants = participantsQuery.data || [];
 
   const isCreator = user?.id === event?.creator_id;
+
+  // Marcar notificações de alteração de evento como lidas quando participante visualiza
+  useEffect(() => {
+    if (eventId && user?.id && !isCreator) {
+      // Se não é criador, marcar notificações de alterações como lidas
+      markTypeAsReadForEvent(eventId, ['event_updated', 'event_cancelled']);
+    }
+  }, [eventId, user?.id, isCreator, markTypeAsReadForEvent]);
 
   // Verificar status de participação do usuário
   useEffect(() => {

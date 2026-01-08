@@ -44,12 +44,13 @@ export const ManageEventScreen: React.FC<ManageEventScreenProps> = ({ navigation
     const [refreshing, setRefreshing] = useState(false);
     const [sharingInvite, setSharingInvite] = useState(false);
     const { getOrCreateInvite, generateShareLink, loading: inviteLoading } = useEventInvite();
-    const { markEventAsRead } = useNotifications();
+    const { markTypeAsReadForEvent } = useNotifications();
 
-    // Marcar notificações deste evento como lidas ao acessar
+    // Marcar notificações de new_request deste evento como lidas ao acessar
+    // Isso acontece quando o criador entra para gerenciar o evento
     useEffect(() => {
-        markEventAsRead(eventId);
-    }, [eventId, markEventAsRead]);
+        markTypeAsReadForEvent(eventId, ['new_request']);
+    }, [eventId, markTypeAsReadForEvent]);
 
     // Query: Dados do evento
     const eventQuery = useQuery({

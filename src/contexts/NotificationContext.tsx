@@ -33,12 +33,22 @@ export interface AppNotification {
     created_at: string;
 }
 
+/**
+ * Estrutura de badges para notificações
+ * 
+ * HIERARQUIA:
+ * - myEvents: Badge no Tab Bar (soma de todas as categorias)
+ * - criados: Notificações new_request (para criadores)
+ * - participo: Notificações event_updated, event_cancelled (para participantes)
+ * - solicitacoes: Notificações request_accepted, request_rejected (respostas às minhas solicitações)
+ * - byEventId: Contagem de notificações não lidas por evento específico
+ */
 export interface NotificationBadges {
-    total: number;           // Total de não lidas
-    myEvents: number;        // Tab Meus Eventos
-    criados: number;         // Sub-tab Criados (new_request)
-    participo: number;       // Sub-tab Participo (request_accepted, event_updated)
-    pendentes: number;       // Sub-tab Pendentes (request_rejected)
+    total: number;              // Total de não lidas
+    myEvents: number;           // Tab Meus Eventos (soma)
+    criados: number;            // Sub-tab Criados - notificações de new_request
+    participo: number;          // Sub-tab Participo - notificações de alterações
+    solicitacoes: number;       // Sub-tab Solicitações - respostas às minhas solicitações
     byEventId: Record<string, number>; // Por evento específico
 }
 
@@ -53,8 +63,10 @@ interface NotificationContextType {
     refetch: () => Promise<void>;
     markAsRead: (notificationId: string) => Promise<void>;
     markEventAsRead: (eventId: string) => Promise<void>;
+    markTypeAsReadForEvent: (eventId: string, types: NotificationType[]) => Promise<void>;
     markAllAsRead: () => Promise<void>;
     getEventBadge: (eventId: string) => number;
+    getUnreadByType: (types: NotificationType[]) => AppNotification[];
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -67,17 +79,27 @@ export const useNotifications = () => {
     return context;
 };
 
-// Categoriza notificação por sub-tab
-function categorizeNotification(type: NotificationType): 'criados' | 'participo' | 'pendentes' | 'other' {
+/**
+ * Categoriza notificação por sub-tab
+ * 
+ * LÓGICA:
+ * - 'criados': Notificações para CRIADORES de eventos (alguém quer participar)
+ * - 'participo': Notificações para PARTICIPANTES (evento mudou)
+ * - 'solicitacoes': Notificações para SOLICITANTES (resposta ao meu pedido)
+ */
+function categorizeNotification(type: NotificationType): 'criados' | 'participo' | 'solicitacoes' | 'other' {
     switch (type) {
         case 'new_request':
-            return 'criados';   // Notificações para criadores
-        case 'request_accepted':
+            return 'criados';       // Para criadores: alguém quer entrar no meu evento
+
         case 'event_updated':
         case 'event_cancelled':
-            return 'participo'; // Notificações para participantes
+            return 'participo';     // Para participantes: evento que participo mudou
+
+        case 'request_accepted':
         case 'request_rejected':
-            return 'pendentes'; // Rejeições das minhas solicitações
+            return 'solicitacoes';  // Para solicitantes: resposta ao meu pedido
+
         default:
             return 'other';
     }
@@ -197,7 +219,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         const byEventId: Record<string, number> = {};
         let criados = 0;
         let participo = 0;
-        let pendentes = 0;
+        let solicitacoes = 0;
 
         for (const notification of unread) {
             // Contar por evento
@@ -214,18 +236,18 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
                 case 'participo':
                     participo++;
                     break;
-                case 'pendentes':
-                    pendentes++;
+                case 'solicitacoes':
+                    solicitacoes++;
                     break;
             }
         }
 
         return {
             total: unread.length,
-            myEvents: criados + participo + pendentes,
+            myEvents: criados + participo + solicitacoes,
             criados,
             participo,
-            pendentes,
+            solicitacoes,
             byEventId,
         };
     }, [unreadNotifications]);
@@ -276,6 +298,33 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         }
     }, [user?.id]);
 
+    // Marcar notificações de tipos específicos para um evento como lidas
+    const markTypeAsReadForEvent = useCallback(async (eventId: string, types: NotificationType[]) => {
+        if (!user?.id) return;
+
+        try {
+            const { error: updateError } = await supabase
+                .from('notifications')
+                .update({ read_at: new Date().toISOString() })
+                .eq('event_id', eventId)
+                .eq('recipient_id', user.id)
+                .in('type', types)
+                .is('read_at', null);
+
+            if (updateError) throw updateError;
+
+            setNotifications(prev =>
+                prev.map(n =>
+                    n.event_id === eventId && types.includes(n.type) && !n.read_at
+                        ? { ...n, read_at: new Date().toISOString() }
+                        : n
+                )
+            );
+        } catch (err: any) {
+            console.error('Error marking type notifications as read:', err);
+        }
+    }, [user?.id]);
+
     // Marcar todas como lidas
     const markAllAsRead = useCallback(async () => {
         if (!user?.id) return;
@@ -302,6 +351,11 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         return badges.byEventId[eventId] || 0;
     }, [badges.byEventId]);
 
+    // Helper para pegar notificações não lidas de tipos específicos
+    const getUnreadByType = useCallback((types: NotificationType[]): AppNotification[] => {
+        return unreadNotifications.filter(n => types.includes(n.type));
+    }, [unreadNotifications]);
+
     const value: NotificationContextType = {
         notifications,
         unreadNotifications,
@@ -311,8 +365,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         refetch: fetchNotifications,
         markAsRead,
         markEventAsRead,
+        markTypeAsReadForEvent,
         markAllAsRead,
         getEventBadge,
+        getUnreadByType,
     };
 
     return (
