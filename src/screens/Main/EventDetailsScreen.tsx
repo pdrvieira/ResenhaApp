@@ -240,6 +240,19 @@ export const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ navigati
       )}
 
       <View style={styles.content}>
+        <View style={styles.headerBadges}>
+          <Chip
+            compact
+            style={{ backgroundColor: event.mode === 'networking' ? '#e3f2fd' : '#fff3e0' }}
+            textStyle={{
+              color: event.mode === 'networking' ? '#1565c0' : '#e65100',
+              fontWeight: 'bold'
+            }}
+          >
+            {event.mode === 'networking' ? '🤝 Networking' : '🎉 Resenha'}
+          </Chip>
+        </View>
+
         <Text variant="headlineSmall" style={styles.title}>
           {event.title}
         </Text>
@@ -320,6 +333,10 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+  },
+  headerBadges: {
+    flexDirection: 'row',
+    marginBottom: 8,
   },
   title: {
     fontWeight: 'bold',

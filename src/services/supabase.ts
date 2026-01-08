@@ -51,9 +51,49 @@ export interface User {
   updated_at: string;
 }
 
+// Modos de Evento
+export type EventMode = 'resenha' | 'networking';
+
+// Configurações Específicas (Metadata)
+export interface ResenhaMetadata {
+  vibe?: 'chill' | 'party' | 'bar' | 'heavy'; // bem de boa, animado, festa mesmo...
+}
+
+export interface NetworkingMetadata {
+  theme?: string; // Tema principal
+  area?: 'tech' | 'marketing' | 'business' | 'creative' | 'general' | 'other';
+  profile?: 'beginner' | 'mid' | 'senior' | 'mixed';
+  format?: 'chat' | 'round_table' | 'presentation' | 'open';
+}
+
+export type EventMetadata = ResenhaMetadata | NetworkingMetadata;
+
+// Tags (Sistema unificado, filtrado no front)
+export const EVENT_TAGS = {
+  // Resenha Tags
+  '#aniversario': { label: '#Aniversário', mode: 'resenha' },
+  '#churrasco': { label: '#Churrasco', mode: 'resenha' },
+  '#festa': { label: '#Festa', mode: 'resenha' },
+  '#bar': { label: '#Bar', mode: 'resenha' },
+  '#show': { label: '#Show', mode: 'resenha' },
+  '#resenhaaberta': { label: '#ResenhaAberta', mode: 'resenha' },
+  '#after': { label: '#After', mode: 'resenha' },
+
+  // Networking Tags
+  '#networking': { label: '#Networking', mode: 'networking' },
+  '#tech': { label: '#Tech', mode: 'networking' },
+  '#startups': { label: '#Startups', mode: 'networking' },
+  '#design': { label: '#Design', mode: 'networking' },
+  '#marketing': { label: '#Marketing', mode: 'networking' },
+  '#empreendedorismo': { label: '#Empreendedorismo', mode: 'networking' },
+} as const;
+
+export type EventTag = keyof typeof EVENT_TAGS;
+
 export interface Event {
   id: string;
   creator_id: string;
+  mode: EventMode; // NOT NULL, default 'resenha'
   title: string;
   description: string;
   image_url?: string;
@@ -63,9 +103,12 @@ export interface Event {
   latitude?: number;
   longitude?: number;
   max_participants?: number;
-  bring_what?: 'nothing' | 'drinks' | 'food' | 'dessert' | 'ice' | 'anything';
+  bring_what?: 'nothing' | 'drinks' | 'food' | 'dessert' | 'ice' | 'anything'; // Relevante para Resenha
   audience: 'everyone' | 'adults_only' | 'invite_only';
   motivation?: string;
+  tags?: EventTag[]; // Array de tags
+  metadata?: EventMetadata; // Campos flexíveis específicos do modo
+
   // Timestamps
   created_at: string;
   updated_at: string;

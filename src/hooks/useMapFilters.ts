@@ -56,6 +56,21 @@ export const useMapFilters = ({ events, userLocation }: UseMapFiltersProps): Use
                 if (distance > filters.radius) return false;
             }
 
+            // Filtro de modo
+            if (filters.mode !== 'all') {
+                if (event.mode !== filters.mode) return false;
+            }
+
+            // Filtro de tags
+            if (filters.tags && filters.tags.length > 0) {
+                // Se o evento não tem tags, mas estamos filtrando por tags, exclui
+                if (!event.tags || event.tags.length === 0) return false;
+
+                // Verifica se há intersecção (Pelo menos uma tag coincidente)
+                const hasMatchingTag = event.tags.some(tag => filters.tags.includes(tag));
+                if (!hasMatchingTag) return false;
+            }
+
             // Filtro de público
             if (filters.audience !== 'all') {
                 if (event.audience !== filters.audience) return false;

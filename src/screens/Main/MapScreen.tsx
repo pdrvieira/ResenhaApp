@@ -124,7 +124,8 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
                             }}
                             title={event.title}
                             onPress={() => handleMarkerPress(event)}
-                            pinColor={selectedEvent?.id === event.id ? '#6200ee' : undefined}
+                            pinColor={event.mode === 'networking' ? '#007AFF' : '#FF6D00'}
+                            zIndex={selectedEvent?.id === event.id ? 10 : 1}
                         />
                     )
                 ))}

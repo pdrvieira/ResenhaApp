@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
 import { TextInput, Button, Text, HelperText } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { EventMode } from '../../services/supabase';
 
 interface Step1Data {
   title: string;
@@ -10,11 +11,12 @@ interface Step1Data {
 }
 
 interface CreateEventStep1Props {
+  mode: EventMode;
   onNext: (data: Step1Data) => void;
   initialData?: Partial<Step1Data>;
 }
 
-export const CreateEventStep1: React.FC<CreateEventStep1Props> = ({ onNext, initialData }) => {
+export const CreateEventStep1: React.FC<CreateEventStep1Props> = ({ mode, onNext, initialData }) => {
   const [title, setTitle] = useState(initialData?.title || '');
   const [description, setDescription] = useState(initialData?.description || '');
   const [eventDate, setEventDate] = useState(initialData?.eventDate || new Date());
@@ -119,7 +121,7 @@ export const CreateEventStep1: React.FC<CreateEventStep1Props> = ({ onNext, init
               setTitle(text);
               if (errors.title) setErrors({ ...errors, title: undefined });
             }}
-            placeholder="Ex: Festa de Aniversário"
+            placeholder={mode === 'resenha' ? "Ex: Festa de Aniversário" : "Ex: Café com Empreendedores"}
             style={styles.input}
             mode="outlined"
             error={!!errors.title}
@@ -136,7 +138,7 @@ export const CreateEventStep1: React.FC<CreateEventStep1Props> = ({ onNext, init
               setDescription(text);
               if (errors.description) setErrors({ ...errors, description: undefined });
             }}
-            placeholder="Descreva seu evento..."
+            placeholder={mode === 'resenha' ? "Descreva seu evento..." : "Ex: Encontro para trocar experiências sobre startups..."}
             style={styles.input}
             mode="outlined"
             multiline

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, ScrollView, Modal, TouchableOpacity, Dimensions } from 'react-native';
 import { Text, Button, TextInput, Chip, Divider, IconButton } from 'react-native-paper';
 import {
@@ -7,7 +7,9 @@ import {
     AudienceFilter,
     DateRangeFilter,
     RadiusFilter,
+    ModeFilter,
 } from '../types/mapFilters';
+import { RESENHA_TAGS, NETWORKING_TAGS } from '../constants/eventOptions';
 
 interface FilterBottomSheetProps {
     visible: boolean;
@@ -39,8 +41,25 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
     activeCount,
 }) => {
     const radiusOptions: RadiusFilter[] = [null, 5, 10, 25, 50];
+    const modeOptions: ModeFilter[] = ['all', 'resenha', 'networking'];
     const audienceOptions: AudienceFilter[] = ['all', 'everyone', 'adults_only', 'invite_only'];
     const dateOptions: DateRangeFilter[] = ['all', 'today', 'tomorrow', 'week', 'month'];
+
+    const toggleTag = (tag: string) => {
+        const currentTags = filters.tags || [];
+        if (currentTags.includes(tag)) {
+            onUpdateFilter('tags', currentTags.filter(t => t !== tag));
+        } else {
+            onUpdateFilter('tags', [...currentTags, tag]);
+        }
+    };
+
+    const visibleTags = useMemo(() => {
+        if (filters.mode === 'resenha') return RESENHA_TAGS;
+        if (filters.mode === 'networking') return NETWORKING_TAGS;
+        // Combinar e remover duplicatas se houver
+        return Array.from(new Set([...RESENHA_TAGS, ...NETWORKING_TAGS]));
+    }, [filters.mode]);
 
     return (
         <Modal
@@ -87,6 +106,24 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
 
                         <Divider style={styles.divider} />
 
+                        {/* Modo */}
+                        <FilterSection title="🎭 Tipo de Evento">
+                            {modeOptions.map((mode) => (
+                                <Chip
+                                    key={mode}
+                                    selected={filters.mode === mode}
+                                    onPress={() => onUpdateFilter('mode', mode)}
+                                    style={styles.chip}
+                                    showSelectedCheck={false}
+                                    mode={filters.mode === mode ? 'flat' : 'outlined'}
+                                >
+                                    {FILTER_LABELS.mode[mode]}
+                                </Chip>
+                            ))}
+                        </FilterSection>
+
+                        <Divider style={styles.divider} />
+
                         {/* Distância */}
                         <FilterSection title="📍 Distância">
                             {radiusOptions.map((radius) => (
@@ -99,6 +136,26 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
                                     mode={filters.radius === radius ? 'flat' : 'outlined'}
                                 >
                                     {FILTER_LABELS.radius[String(radius) as keyof typeof FILTER_LABELS.radius]}
+                                </Chip>
+                            ))}
+                        </FilterSection>
+
+
+
+                        <Divider style={styles.divider} />
+
+                        {/* Tags */}
+                        <FilterSection title="🏷️ Tags">
+                            {visibleTags.map((tag) => (
+                                <Chip
+                                    key={tag}
+                                    selected={(filters.tags || []).includes(tag)}
+                                    onPress={() => toggleTag(tag)}
+                                    style={styles.chip}
+                                    showSelectedCheck
+                                    mode={(filters.tags || []).includes(tag) ? 'flat' : 'outlined'}
+                                >
+                                    {tag}
                                 </Chip>
                             ))}
                         </FilterSection>
@@ -160,7 +217,7 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
                     </View>
                 </View>
             </View>
-        </Modal>
+        </Modal >
     );
 };
 

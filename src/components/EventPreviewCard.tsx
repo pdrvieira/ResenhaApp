@@ -59,13 +59,28 @@ export const EventPreviewCard: React.FC<EventPreviewCardProps> = ({
                         </Text>
                     )}
 
-                    {event.audience === 'adults_only' && (
-                        <View style={styles.tagsRow}>
+                    <View style={styles.tagsRow}>
+                        <Chip
+                            compact
+                            style={[
+                                styles.modeChip,
+                                { backgroundColor: event.mode === 'networking' ? '#e3f2fd' : '#fff3e0' }
+                            ]}
+                            textStyle={{
+                                color: event.mode === 'networking' ? '#1565c0' : '#e65100',
+                                fontWeight: 'bold',
+                                fontSize: 10
+                            }}
+                        >
+                            {event.mode === 'networking' ? '🤝 Networking' : '🎉 Resenha'}
+                        </Chip>
+
+                        {event.audience === 'adults_only' && (
                             <Chip compact style={styles.tagAdult} textStyle={styles.tagText}>
                                 🔞 +18
                             </Chip>
-                        </View>
-                    )}
+                        )}
+                    </View>
                 </View>
             </View>
 
@@ -142,6 +157,10 @@ const styles = StyleSheet.create({
     tag: {
         height: 24,
         backgroundColor: '#f0f0f0',
+    },
+    modeChip: {
+        height: 24,
+        marginRight: 4,
     },
     tagAdult: {
         height: 24,
