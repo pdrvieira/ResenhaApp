@@ -10,5 +10,6 @@ export { SettingsScreen } from './SettingsScreen';
 export { ManageEventScreen } from './ManageEventScreen';
 export { EditEventScreen } from './EditEventScreen';
 export { MapScreen } from './MapScreen';
+export { DiscoverScreen } from './DiscoverScreen';
 export { MyEventsScreen } from './MyEventsScreen';
 export { InviteScreen } from './InviteScreen';

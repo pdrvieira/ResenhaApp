@@ -1,18 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Keyboard, TouchableOpacity } from 'react-native';
-import { TextInput, Button, Text, Snackbar, Checkbox } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Keyboard, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Snackbar, Checkbox } from 'react-native-paper';
 import { useAuth } from '../../contexts/AuthContext';
+import { theme } from '../../theme';
+
+// Atomic Components
+import { ReScreen } from '../../components/atoms/ReScreen';
+import { ReText } from '../../components/atoms/ReText';
+import { ReInput } from '../../components/atoms/ReInput';
+import { ReButton } from '../../components/atoms/ReButton';
 
 export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  const { signIn } = useAuth(); // Removed context loading
+  const { signIn } = useAuth();
 
   useEffect(() => {
     const loadSavedEmail = async () => {
@@ -46,7 +52,6 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     if (error) {
       setError(error);
     } else {
-      // Save or clear email based on rememberMe
       try {
         if (rememberMe) {
           await AsyncStorage.setItem('saved_email', trimmedEmail);
@@ -60,151 +65,155 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Text variant="headlineMedium" style={styles.title}>
-            Bem-vindo de volta!
-          </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            Entre para continuar a resenha.
-          </Text>
+    <ReScreen scrollable contentContainerStyle={styles.scrollContent}>
+
+      {/* Header Section */}
+      <View style={styles.header}>
+        <ReText variant="displaySmall" weight="700" style={styles.emojiTitle}>
+          👋
+        </ReText>
+        <ReText variant="displaySmall" weight="bold" color="textPrimary" style={styles.title}>
+          Bem-vindo de volta!
+        </ReText>
+        <ReText variant="bodyLarge" color="textSecondary" style={styles.subtitle}>
+          Entre para continuar a <ReText variant="bodyLarge" color="primary" weight="bold">Resenha</ReText>.
+        </ReText>
+      </View>
+
+      {/* Form Section */}
+      <View style={styles.form}>
+        <ReInput
+          label="Email ou Usuário"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          disabled={loading}
+          leftIcon="account-outline"
+        />
+
+        <View style={styles.spacer} />
+
+        <ReInput
+          label="Senha"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          disabled={loading}
+          leftIcon="lock-outline"
+        />
+
+        {/* Remember Me & Forgot Password */}
+        <View style={styles.optionsRow}>
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            onPress={() => setRememberMe(!rememberMe)}
+            activeOpacity={0.7}
+          >
+            <Checkbox.Android
+              status={rememberMe ? 'checked' : 'unchecked'}
+              onPress={() => setRememberMe(!rememberMe)}
+              color={theme.custom.colors.primary}
+              uncheckedColor={theme.custom.colors.textSecondary}
+            />
+            <ReText variant="bodyMedium" color="textSecondary">Lembrar de mim</ReText>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+            <ReText variant="bodyMedium" color="primary" weight="600">
+              Esqueci a senha
+            </ReText>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.formContent}>
-          <TextInput
-            label="Email ou Usuário"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            style={styles.input}
-            editable={!loading}
-            mode="outlined"
-          />
-
-          <TextInput
-            label="Senha"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-            style={styles.input}
-            editable={!loading}
-            mode="outlined"
-            right={
-              <TextInput.Icon
-                icon={showPassword ? "eye-off" : "eye"}
-                onPress={() => setShowPassword(!showPassword)}
-              />
-            }
-          />
-
-          <View style={styles.rememberRow}>
-            <View style={styles.checkboxContainer}>
-              <Checkbox.Android
-                status={rememberMe ? 'checked' : 'unchecked'}
-                onPress={() => setRememberMe(!rememberMe)}
-                color="#6200ee"
-              />
-              <TouchableOpacity onPress={() => setRememberMe(!rememberMe)}>
-                <Text variant="bodyMedium">Lembrar de mim</Text>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-              <Text variant="bodyMedium" style={styles.forgotLink}>Esqueci minha senha</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Button
-            mode="contained"
+        {/* Actions */}
+        <View style={styles.actions}>
+          <ReButton
+            label="ENTRAR"
             onPress={handleLogin}
             loading={loading}
             disabled={loading}
-            style={styles.button}
-            contentStyle={{ height: 48 }}
-          >
-            Entrar
-          </Button>
+            fullWidth
+            style={styles.mainButton}
+          />
 
-          <Button
-            mode="text"
-            onPress={() => navigation.navigate('Signup')}
-            disabled={loading}
-            style={styles.textButton}
-          >
-            Ainda não tem conta? Cadastre-se
-          </Button>
-
+          <View style={styles.footer}>
+            <ReText variant="bodyMedium" color="textSecondary">
+              Ainda não tem conta?{' '}
+            </ReText>
+            <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+              <ReText variant="bodyMedium" color="primary" weight="bold">
+                Cadastre-se
+              </ReText>
+            </TouchableOpacity>
+          </View>
         </View>
-      </ScrollView>
+      </View>
 
       <Snackbar
         visible={!!error}
         onDismiss={() => setError('')}
         duration={3000}
-        style={styles.snackbar}
+        style={{ backgroundColor: theme.custom.colors.error }}
       >
-        <Text style={{ color: '#fff' }}>{error}</Text>
+        {error}
       </Snackbar>
-    </View>
+    </ReScreen>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
   scrollContent: {
-    flexGrow: 1,
+    padding: theme.custom.spacing.l, // 24px
+    justifyContent: 'center',
+    minHeight: '100%',
   },
   header: {
-    paddingTop: 80,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    backgroundColor: '#fff',
+    marginBottom: theme.custom.spacing.xl,
+    alignItems: 'flex-start',
   },
-  formContent: {
-    padding: 20,
-    paddingTop: 0,
-    flex: 1,
-  },
-  title: {
-    fontWeight: 'bold',
+  emojiTitle: {
+    fontSize: 40,
     marginBottom: 8,
   },
+  title: {
+    marginBottom: theme.custom.spacing.s,
+  },
   subtitle: {
-    color: '#666',
+    maxWidth: '80%',
   },
-  input: {
-    marginBottom: 16,
-    backgroundColor: '#fff',
+  form: {
+    marginBottom: theme.custom.spacing.l,
   },
-  rememberRow: {
+  spacer: {
+    height: theme.custom.spacing.m,
+  },
+  optionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginTop: theme.custom.spacing.s,
+    marginBottom: theme.custom.spacing.xl,
   },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: -8, // Compensate for Checkbox default padding
+    marginLeft: -8, // Ajuste visual do checkbox nativo
   },
-  forgotLink: {
-    color: '#6200ee',
-    fontWeight: '600',
+  actions: {
+    marginTop: theme.custom.spacing.s,
   },
-  button: {
-    marginTop: 0,
-    marginBottom: 24,
-    borderRadius: 8,
+  mainButton: {
+    marginBottom: theme.custom.spacing.l,
+    shadowColor: theme.custom.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  textButton: {
-    marginBottom: 8,
-  },
-  snackbar: {
-    backgroundColor: '#d32f2f',
-    zIndex: 1000,
-    elevation: 1000,
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

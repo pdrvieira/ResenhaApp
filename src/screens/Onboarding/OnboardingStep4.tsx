@@ -1,29 +1,32 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Button, Text, Switch } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Switch } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNotificationPermission } from '../../hooks/useNotificationPermission';
+import { theme } from '../../theme';
+
+// Atomic Components
+import { ReScreen } from '../../components/atoms/ReScreen';
+import { ReText } from '../../components/atoms/ReText';
+import { ReButton } from '../../components/atoms/ReButton';
 
 interface OnboardingStep4Props {
   onFinish: (preferences: { notificationsEnabled: boolean }) => void;
+  onBack: () => void;
   loading?: boolean;
 }
 
-export const OnboardingStep4: React.FC<OnboardingStep4Props> = ({ onFinish, loading = false }) => {
+export const OnboardingStep4: React.FC<OnboardingStep4Props> = ({ onFinish, onBack, loading = false }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const { requestPermission } = useNotificationPermission();
 
-  // Solicitar permissão do sistema quando ativar notificações
   const handleToggleNotifications = useCallback(async (value: boolean) => {
     setNotificationsEnabled(value);
-
     if (value) {
-      // Se ativou, solicitar permissão do sistema
       await requestPermission();
     }
   }, [requestPermission]);
 
   const handleFinish = async () => {
-    // Se notificações ativadas, garantir que temos permissão
     if (notificationsEnabled) {
       await requestPermission();
     }
@@ -31,87 +34,122 @@ export const OnboardingStep4: React.FC<OnboardingStep4Props> = ({ onFinish, load
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ReScreen scrollable contentContainerStyle={styles.scrollContent}>
+
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+          <Icon name="arrow-left" size={24} color={theme.custom.colors.textPrimary} />
+        </TouchableOpacity>
+
+        <ReText variant="labelLarge" color="primary" style={styles.stepIndicator}>
+          Passo 3 de 3
+        </ReText>
+        <ReText variant="displaySmall" weight="bold" style={styles.title}>
+          Fique por dentro!
+        </ReText>
+        <ReText variant="bodyLarge" color="textSecondary" style={styles.subtitle}>
+          Ative as notificações para não perder convites e atualizações importantes.
+        </ReText>
+      </View>
+
+      {/* Content */}
       <View style={styles.content}>
-        <Text variant="headlineSmall" style={styles.title}>
-          Preferências
-        </Text>
-
-        <Text style={styles.subtitle}>
-          Customize sua experiência
-        </Text>
-
-        <View style={styles.preferenceItem}>
-          <View style={styles.preferenceText}>
-            <Text style={styles.preferenceTitle}>Receber notificações push</Text>
-            <Text style={styles.preferenceDescription}>
-              Saiba quando alguém quer participar dos seus eventos
-            </Text>
+        <View style={styles.card}>
+          <View style={styles.iconArea}>
+            <Icon
+              name={notificationsEnabled ? "bell-ring" : "bell-off"}
+              size={32}
+              color={notificationsEnabled ? theme.custom.colors.primary : theme.custom.colors.textSecondary}
+            />
+          </View>
+          <View style={styles.textArea}>
+            <ReText variant="labelLarge" weight="bold">Notificações Push</ReText>
+            <ReText variant="bodyMedium" color="textSecondary">
+              Saiba quando alguém quer participar dos seus eventos.
+            </ReText>
           </View>
           <Switch
             value={notificationsEnabled}
             onValueChange={handleToggleNotifications}
             disabled={loading}
+            trackColor={{ false: '#e0e0e0', true: theme.custom.colors.primary }}
+            thumbColor={'#fff'}
           />
         </View>
 
-        <Button
-          mode="contained"
-          onPress={handleFinish}
-          loading={loading}
-          disabled={loading}
-          style={styles.button}
-        >
-          Finalizar
-        </Button>
+        {/* Actions */}
+        <View style={styles.actions}>
+          <ReButton
+            label="FINALIZAR E ENTRAR"
+            onPress={handleFinish}
+            loading={loading}
+            disabled={loading}
+            fullWidth
+            style={styles.mainButton}
+          />
+        </View>
       </View>
-    </ScrollView>
+    </ReScreen>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    padding: 20,
+  scrollContent: {
+    padding: theme.custom.spacing.l,
     justifyContent: 'center',
     minHeight: '100%',
   },
-  title: {
-    textAlign: 'center',
-    marginBottom: 40,
+  header: {
+    marginBottom: theme.custom.spacing.xl,
+  },
+  backButton: {
+    marginBottom: theme.custom.spacing.m,
+    marginLeft: -theme.custom.spacing.xs,
+    padding: theme.custom.spacing.xs,
+  },
+  stepIndicator: {
+    marginBottom: theme.custom.spacing.s,
     fontWeight: 'bold',
   },
+  title: {
+    marginBottom: theme.custom.spacing.xs,
+  },
   subtitle: {
-    fontSize: 14,
-    marginBottom: 24,
-    textAlign: 'center',
+    maxWidth: '90%',
   },
-  preferenceItem: {
+  content: {
+    marginBottom: theme.custom.spacing.l,
+  },
+  card: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    marginBottom: 24,
+    backgroundColor: theme.custom.colors.surface,
+    padding: theme.custom.spacing.m,
+    borderRadius: theme.custom.roundness.m,
+    // Shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  preferenceText: {
+  iconArea: {
+    marginRight: theme.custom.spacing.m,
+  },
+  textArea: {
     flex: 1,
-    marginRight: 12,
+    marginRight: theme.custom.spacing.s,
   },
-  preferenceTitle: {
-    fontSize: 16,
-    fontWeight: '500',
+  actions: {
+    marginTop: theme.custom.spacing.xl,
   },
-  preferenceDescription: {
-    fontSize: 13,
-    color: '#666',
-    marginTop: 4,
-  },
-  button: {
-    marginTop: 20,
+  mainButton: {
+    marginBottom: theme.custom.spacing.l,
+    shadowColor: theme.custom.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
 });

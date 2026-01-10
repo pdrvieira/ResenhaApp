@@ -1,42 +1,98 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { TextInput, Button, Text } from 'react-native-paper';
+import { View, StyleSheet, Keyboard, TouchableOpacity } from 'react-native';
+import { Snackbar } from 'react-native-paper';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { theme } from '../../theme';
+
+// Atomic Components
+import { ReScreen } from '../../components/atoms/ReScreen';
+import { ReText } from '../../components/atoms/ReText';
+import { ReInput } from '../../components/atoms/ReInput';
+import { ReButton } from '../../components/atoms/ReButton';
 
 interface OnboardingStep1Props {
   onNext: (data: { name: string; username: string }) => void;
+  onBack: () => void;
   loading?: boolean;
 }
 
-export const OnboardingStep1: React.FC<OnboardingStep1Props> = ({ onNext, loading = false }) => {
+export const OnboardingStep1: React.FC<OnboardingStep1Props> = ({ onNext, onBack, loading = false }) => {
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
 
+  const handleNameChange = (text: string) => {
+    // 1. Sanitização: Apenas letras e espaços
+    let sanitized = text.replace(/[^a-zA-ZÀ-ÿ\s]/g, '');
+
+    // 2. Limite: Máximo 50 caracteres
+    if (sanitized.length > 50) return;
+
+    // 3. UX: Impede múltiplos espaços seguidos
+    sanitized = sanitized.replace(/\s{2,}/g, ' ');
+
+    // 4. Force Title Case Rígido (Pedro Vieira)
+    // Converte tudo para minúsculo primeiro, depois capitaliza a primeira letra de cada palavra
+    sanitized = sanitized
+      .toLowerCase()
+      .replace(/(^\w|\s\w)/g, m => m.toUpperCase());
+
+    setName(sanitized);
+    if (error) setError('');
+  };
+
+  const handleUsernameChange = (text: string) => {
+    // 1. Sanitização: Alphanumeric, _ e .
+    // 2. Limite: Máximo 30 caracteres
+    const sanitized = text.replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase();
+
+    if (sanitized.length > 30) return;
+
+    setUsername(sanitized);
+    if (error) setError('');
+  };
+
   const handleNext = () => {
+    Keyboard.dismiss();
     setError('');
 
     const trimmedName = name.trim();
     const trimmedUsername = username.trim();
 
+    // Validações de Nome
     if (!trimmedName) {
-      setError('Nome é obrigatório');
+      setError('Como podemos te chamar? O nome é obrigatório.');
       return;
     }
 
+    if (trimmedName.length < 4) {
+      setError('O nome parece muito curto.');
+      return;
+    }
+
+    if (trimmedName.split(' ').length < 2) {
+      setError('Por favor, digite seu Nome e Sobrenome.');
+      return;
+    }
+
+    // Validações de Username
     if (!trimmedUsername) {
-      setError('Username é obrigatório');
+      setError('Escolha um @username único.');
       return;
     }
 
     if (trimmedUsername.length < 3) {
-      setError('Username deve ter pelo menos 3 caracteres');
+      setError('O username deve ter pelo menos 3 caracteres.');
       return;
     }
 
-    // Regex: Letters, numbers, underscores, dots. No spaces.
-    const usernameRegex = /^[a-zA-Z0-9_.]+$/;
-    if (!usernameRegex.test(trimmedUsername)) {
-      setError('Username deve conter apenas letras, números, ponto ou underline.');
+    if (trimmedUsername.startsWith('.') || trimmedUsername.endsWith('.')) {
+      setError('O username não pode começar ou terminar com ponto.');
+      return;
+    }
+
+    if (trimmedUsername.includes('..') || trimmedUsername.includes('__')) {
+      setError('Evite pontos ou underlines seguidos.');
       return;
     }
 
@@ -44,92 +100,126 @@ export const OnboardingStep1: React.FC<OnboardingStep1Props> = ({ onNext, loadin
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ReScreen scrollable contentContainerStyle={styles.scrollContent}>
+
+      {/* Header */}
       <View style={styles.header}>
-        <Text variant="labelLarge" style={styles.stepIndicator}>Passo 1 de 4</Text>
-        <Text variant="headlineMedium" style={styles.title}>Vamos começar!</Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>Como você quer ser chamado no Resenha?</Text>
+        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+          <Icon name="arrow-left" size={24} color={theme.custom.colors.textPrimary} />
+        </TouchableOpacity>
+
+        <ReText variant="labelLarge" color="primary" style={styles.stepIndicator}>
+          Passo 1 de 3
+        </ReText>
+        <ReText variant="displaySmall" weight="bold" style={styles.title}>
+          Quem é você?
+        </ReText>
+        <ReText variant="bodyLarge" color="textSecondary" style={styles.subtitle}>
+          Diga como prefere ser chamado no Resenha.
+        </ReText>
       </View>
 
-      <View style={styles.content}>
-        <TextInput
-          label="Nome Completo"
+      {/* Form */}
+      <View style={styles.form}>
+        <ReInput
+          label="Nome Completo (ou apelido)"
           value={name}
-          onChangeText={setName}
-          placeholder="Ex: João Silva"
-          style={styles.input}
-          editable={!loading}
-          mode="outlined"
+          onChangeText={handleNameChange}
+          placeholder="Ex: João da Silva"
+          disabled={loading}
+          leftIcon="account-outline"
+          autoCapitalize="words"
         />
 
-        <TextInput
-          label="Username"
+        <View style={styles.spacer} />
+
+        <ReInput
+          label="@username"
           value={username}
-          onChangeText={setUsername}
+          onChangeText={handleUsernameChange}
           placeholder="Ex: joaosilva"
           autoCapitalize="none"
-          style={styles.input}
-          editable={!loading}
-          mode="outlined"
+          disabled={loading}
+          leftIcon="at"
+          error={error.includes('username') ? error : undefined}
         />
 
-        {error && <Text style={styles.error}>{error}</Text>}
-
-        <Button
-          mode="contained"
-          onPress={handleNext}
-          loading={loading}
-          disabled={loading}
-          style={styles.button}
-          contentStyle={{ height: 48 }}
-        >
-          Próximo
-        </Button>
+        {/* Actions */}
+        <View style={styles.actions}>
+          <ReButton
+            label="CONTINUAR"
+            onPress={handleNext}
+            loading={loading}
+            disabled={loading}
+            fullWidth
+            style={styles.mainButton}
+          />
+        </View>
       </View>
-    </ScrollView>
+
+      <Snackbar
+        visible={!!error && !error.includes('username')}
+        onDismiss={() => setError('')}
+        duration={3000}
+        style={{
+          backgroundColor: theme.custom.colors.error,
+          borderRadius: theme.custom.roundness.m,
+          marginBottom: 20,
+        }}
+        wrapperStyle={styles.snackbarWrapper}
+      >
+        <ReText variant="labelLarge" style={{ color: '#fff', textAlign: 'center' }}>
+          {error}
+        </ReText>
+      </Snackbar>
+    </ReScreen>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
+  scrollContent: {
+    padding: theme.custom.spacing.l,
+    justifyContent: 'center',
+    minHeight: '100%',
   },
   header: {
-    paddingTop: 40,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    marginBottom: theme.custom.spacing.xl,
   },
-  content: {
-    padding: 20,
-    paddingTop: 0,
-    flex: 1,
+  backButton: {
+    marginBottom: theme.custom.spacing.m,
+    marginLeft: -theme.custom.spacing.xs,
+    padding: theme.custom.spacing.xs,
   },
   stepIndicator: {
-    color: '#666',
-    marginBottom: 8,
-    fontWeight: '600',
+    marginBottom: theme.custom.spacing.s,
+    fontWeight: 'bold',
   },
   title: {
-    fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: theme.custom.spacing.xs,
   },
   subtitle: {
-    color: '#666',
-    fontSize: 14,
+    maxWidth: '85%',
   },
-  input: {
-    marginBottom: 16,
-    backgroundColor: '#fff',
+  form: {
+    marginBottom: theme.custom.spacing.l,
   },
-  button: {
-    marginTop: 24,
-    borderRadius: 8,
+  spacer: {
+    height: theme.custom.spacing.m,
   },
-  error: {
-    color: '#d32f2f',
-    marginBottom: 12,
-    textAlign: 'center',
-    fontWeight: 'bold',
+  actions: {
+    marginTop: theme.custom.spacing.xl,
   },
+  mainButton: {
+    marginBottom: theme.custom.spacing.l,
+    shadowColor: theme.custom.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  snackbarWrapper: {
+    alignSelf: 'center',
+    width: '90%',
+    bottom: 40,
+  }
 });

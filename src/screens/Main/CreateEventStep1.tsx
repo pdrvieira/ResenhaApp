@@ -254,6 +254,7 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     borderRadius: 8,
+    marginBottom: 240,
   },
   buttonContent: {
     paddingVertical: 8,

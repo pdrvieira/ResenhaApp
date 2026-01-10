@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNotifications } from '../contexts/NotificationContext';
+import { theme } from '../theme';
 import {
   EventDetailsScreen,
   CreateEventScreen,
@@ -13,6 +14,7 @@ import {
   ManageEventScreen,
   EditEventScreen,
   MapScreen,
+  DiscoverScreen,
   MyEventsScreen,
   InviteScreen,
 } from '../screens/Main';
@@ -25,13 +27,13 @@ const DiscoverStack = () => (
   <Stack.Navigator>
     <Stack.Screen
       name="DiscoverMap"
-      component={MapScreen}
+      component={DiscoverScreen}
       options={{ title: 'Descobrir', headerShown: false }}
     />
     <Stack.Screen
       name="EventDetails"
       component={EventDetailsScreen}
-      options={{ title: 'Detalhes do Evento' }}
+      options={{ headerShown: false }}
     />
     <Stack.Screen
       name="ManageEvent"
@@ -62,7 +64,7 @@ const MyEventsStack = () => (
     <Stack.Screen
       name="EventDetails"
       component={EventDetailsScreen}
-      options={{ title: 'Detalhes do Evento' }}
+      options={{ headerShown: false }}
     />
     <Stack.Screen
       name="ManageEvent"
@@ -156,8 +158,32 @@ export const MainNavigator: React.FC = () => {
 
           return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#6200ee',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: theme.custom.colors.primary,
+        tabBarInactiveTintColor: theme.custom.colors.textSecondary,
+        tabBarStyle: {
+          backgroundColor: theme.custom.colors.surface,
+          borderTopWidth: 0, // Remove borda padrão feia
+          elevation: 20, // Sombra forte no Android
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 }, // Sombra subindo
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          position: 'absolute', // Flutuante sobre o mapa se necessário, mas aqui garante background full
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 85, // Altura maior para acomodar Home Indicator sem cortar
+          paddingTop: 12,
+          paddingBottom: 25, // Espaço para a barra preta do iPhone
+          borderTopLeftRadius: 24, // Arredondado moderno nas pontas superiores
+          borderTopRightRadius: 24,
+        },
+        tabBarLabelStyle: {
+          fontFamily: theme.fonts.labelMedium ? theme.fonts.labelMedium.fontFamily : 'System',
+          fontSize: 11,
+          marginTop: -4, // Aproxima o texto do ícone
+          marginBottom: 4,
+        },
         headerShown: false,
       })}
     >
@@ -165,6 +191,17 @@ export const MainNavigator: React.FC = () => {
         name="Discover"
         component={DiscoverStack}
         options={{ title: 'Descobrir' }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            if (navigation.isFocused()) {
+              // Se já focado, envia sinal de reset para a tela interna
+              navigation.navigate('Discover', {
+                screen: 'DiscoverMap',
+                params: { resetAction: Date.now() }
+              });
+            }
+          },
+        })}
       />
       <Tab.Screen
         name="MyEvents"

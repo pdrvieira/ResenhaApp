@@ -360,6 +360,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 20,
+    paddingBottom: 120, // Espaço para TabBar
   },
   header: {
     marginBottom: 24,
@@ -459,6 +460,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginTop: 24,
+    marginBottom: 20, // Espaço extra
   },
   backButton: {
     flex: 1,

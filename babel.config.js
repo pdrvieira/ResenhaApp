@@ -5,5 +5,6 @@ module.exports = {
       moduleName: '@env',
       path: '.env',
     }],
+    'react-native-reanimated/plugin', // DEVE ser o último plugin
   ],
 };

@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Keyboard, Alert } from 'react-native';
-import { TextInput, Button, Text, Snackbar, HelperText } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Keyboard, Alert } from 'react-native';
+import { Snackbar } from 'react-native-paper';
 import { useAuth } from '../../contexts/AuthContext';
+import { theme } from '../../theme';
+
+// Atomic Components
+import { ReScreen } from '../../components/atoms/ReScreen';
+import { ReText } from '../../components/atoms/ReText';
+import { ReInput } from '../../components/atoms/ReInput';
+import { ReButton } from '../../components/atoms/ReButton';
 
 export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -9,14 +16,10 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { signUp } = useAuth(); // Removed context loading
 
-  // ... (isValidEmail remains) ...
+  const { signUp } = useAuth();
 
   const handleSignup = async () => {
-    // ... existing logic ...
     Keyboard.dismiss();
     setError('');
 
@@ -48,22 +51,22 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     setLoading(false);
 
     if (signUpError) {
-      setError(signUpError);
+      // Tradução amigável de erros comuns do Supabase
+      if (signUpError.includes('already registered')) {
+        setError('Este email já está cadastrado.');
+      } else {
+        setError(signUpError);
+      }
       return;
     }
 
-    // Se não houver erro e não houver sessão, significa que o email de confirmação foi enviado
     if (!session) {
       Alert.alert(
         'Verifique seu email',
         'Enviamos um link de confirmação para o seu email. Por favor, confirme para continuar.',
-        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+        [{ text: 'ENTENDI', onPress: () => navigation.navigate('Login') }]
       );
     }
-  };
-
-  const hasPasswordError = () => {
-    return password.length > 0 && password.length < 6;
   };
 
   const isValidEmail = (email: string) => {
@@ -71,162 +74,141 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* ... Header ... */}
-        <View style={styles.header}>
-          <Text variant="labelLarge" style={styles.stepIndicator}>Passo 1 de 2</Text>
-          <Text variant="headlineMedium" style={styles.title}>
-            Crie sua conta
-          </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            Insira seus dados para começar a usar o Resenha!
-          </Text>
-        </View>
+    <ReScreen scrollable contentContainerStyle={styles.scrollContent}>
 
-        <View style={styles.formContent}>
-          <TextInput
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            style={styles.input}
-            editable={!loading}
-            mode="outlined"
-          />
+      {/* Header */}
+      <View style={styles.header}>
+        <ReText variant="displaySmall" weight="700" style={styles.emojiTitle}>
+          🚀
+        </ReText>
+        <ReText variant="displaySmall" weight="bold" color="textPrimary" style={styles.title}>
+          Crie sua conta
+        </ReText>
+        <ReText variant="bodyLarge" color="textSecondary" style={styles.subtitle}>
+          Entre para fazer parte dos melhores <ReText variant="bodyLarge" color="primary" weight="bold">Círculos</ReText>.
+        </ReText>
+      </View>
 
-          <TextInput
-            label="Senha"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-            style={styles.input}
-            editable={!loading}
-            mode="outlined"
-            error={hasPasswordError()}
-            right={
-              <TextInput.Icon
-                icon={showPassword ? "eye-off" : "eye"}
-                onPress={() => setShowPassword(!showPassword)}
-              />
-            }
-          />
-          <HelperText type="info" visible={true} padding="none" style={styles.helperText}>
-            Mínimo de 6 caracteres
-          </HelperText>
+      {/* Form */}
+      <View style={styles.form}>
+        <ReInput
+          label="Seu melhor email"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          disabled={loading}
+          leftIcon="email-outline"
+        />
 
-          <TextInput
-            label="Confirmar Senha"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry={!showConfirmPassword}
-            style={styles.input}
-            editable={!loading}
-            mode="outlined"
-            right={
-              <TextInput.Icon
-                icon={showConfirmPassword ? "eye-off" : "eye"}
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-              />
-            }
-          />
+        <View style={styles.spacer} />
 
-          <Button
-            mode="contained"
+        <ReInput
+          label="Senha (min. 6 caracteres)"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          disabled={loading}
+          leftIcon="lock-outline"
+        />
+
+        <View style={styles.spacer} />
+
+        <ReInput
+          label="Confirme sua senha"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+          disabled={loading}
+          leftIcon="lock-check-outline"
+          error={confirmPassword && password !== confirmPassword ? "As senhas não coincidem" : undefined}
+        />
+
+        {/* Actions */}
+        <View style={styles.actions}>
+          <ReText variant="bodyMedium" color="textSecondary" align="center" style={styles.legalText}>
+            Ao continuar, você concorda com nossos Termos de Serviço e Política de Privacidade.
+          </ReText>
+
+          <ReButton
+            label="CRIAR CONTA"
             onPress={handleSignup}
             loading={loading}
             disabled={loading}
-            style={styles.button}
-            contentStyle={{ height: 48 }}
-          >
-            Continuar
-          </Button>
+            fullWidth
+            style={styles.mainButton}
+          />
 
-          <Text style={styles.legalText}>
-            Ao continuar, você concorda com nossos Termos de Serviço e Política de Privacidade.
-          </Text>
-
-          <Button
-            mode="text"
-            onPress={() => navigation.navigate('Login')}
-            disabled={loading}
-            style={styles.loginButton}
-          >
-            Já tenho conta
-          </Button>
+          <View style={styles.footer}>
+            <ReText variant="bodyMedium" color="textSecondary">
+              Já tem conta?{' '}
+            </ReText>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <ReText variant="bodyMedium" color="primary" weight="bold">
+                Entre aqui
+              </ReText>
+            </TouchableOpacity>
+          </View>
         </View>
-      </ScrollView>
+      </View>
 
       <Snackbar
         visible={!!error}
         onDismiss={() => setError('')}
         duration={3000}
-        style={styles.snackbar}
+        style={{ backgroundColor: theme.custom.colors.error }}
       >
-        <Text style={{ color: '#fff' }}>{error}</Text>
+        {error}
       </Snackbar>
-    </View>
+    </ReScreen>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
   scrollContent: {
-    flexGrow: 1,
+    padding: theme.custom.spacing.l,
+    justifyContent: 'center',
+    minHeight: '100%',
   },
   header: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    backgroundColor: '#fff', // Keep header background consistent
+    marginBottom: theme.custom.spacing.xl,
+    alignItems: 'flex-start',
   },
-  stepIndicator: {
-    color: '#666',
+  emojiTitle: {
+    fontSize: 40,
     marginBottom: 8,
-    fontWeight: '600',
   },
   title: {
-    fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: theme.custom.spacing.s,
   },
   subtitle: {
-    color: '#666',
+    maxWidth: '90%',
   },
-  formContent: {
-    padding: 20,
-    paddingTop: 10,
-    justifyContent: 'flex-start',
-    flex: 1,
+  form: {
+    marginBottom: theme.custom.spacing.l,
   },
-  input: {
-    marginBottom: 4, // Reduced margin because helper text takes space or is controlled separately
-    backgroundColor: '#fff',
+  spacer: {
+    height: theme.custom.spacing.m, // 16px
   },
-  helperText: {
-    marginBottom: 12,
+  actions: {
+    marginTop: theme.custom.spacing.xl,
   },
-  button: {
-    marginTop: 24,
-    marginBottom: 16,
-    borderRadius: 8,
-  },
-  loginButton: {
-    marginTop: 8,
+  mainButton: {
+    marginBottom: theme.custom.spacing.l,
+    shadowColor: theme.custom.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   legalText: {
     fontSize: 12,
-    color: '#888',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 18,
+    marginBottom: theme.custom.spacing.l,
+    paddingHorizontal: theme.custom.spacing.s,
   },
-  snackbar: {
-    backgroundColor: '#d32f2f',
-    zIndex: 1000,
-    elevation: 1000,
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

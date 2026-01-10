@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../services/supabase';
 import { OnboardingStep1 } from './OnboardingStep1';
 import { OnboardingStep2 } from './OnboardingStep2';
-import { OnboardingStep3 } from './OnboardingStep3';
+// Step 3 (Cidade) removido. A localização será pega via GPS na Home.
 import { OnboardingStep4 } from './OnboardingStep4';
 import { LoadingScreen } from '../../components/LoadingScreen';
 
@@ -16,17 +16,32 @@ export const OnboardingScreen: React.FC = () => {
     name: '',
     username: '',
     photoUri: null as string | null,
-    city: '',
+    // city removido
     notificationsEnabled: true,
   });
-  const { updateProfile, user, onboardingComplete } = useAuth();
+  const { updateProfile, user, onboardingComplete, signOut } = useAuth();
 
-  // Monitora quando o onboarding é concluído para garantir que o RootNavigator navegue
+  // Monitora quando o onboarding é concluído
   useEffect(() => {
     if (onboardingComplete && user) {
       console.log('✅ Onboarding completo detectado, RootNavigator deve navegar automaticamente');
     }
   }, [onboardingComplete, user]);
+
+  const handleBack = () => {
+    if (step === 1) {
+      Alert.alert(
+        'Sair',
+        'Deseja sair da criação de conta?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Sair', style: 'destructive', onPress: () => signOut() },
+        ]
+      );
+    } else {
+      setStep((prev) => prev - 1);
+    }
+  };
 
   const handleStep1 = (data: { name: string; username: string }) => {
     setOnboardingData((prev) => ({
@@ -43,18 +58,12 @@ export const OnboardingScreen: React.FC = () => {
       ...prev,
       photoUri: photoUri || null,
     }));
-    setStep(3);
-    setError(null);
-  };
-
-  const handleStep3 = (city: string) => {
-    setOnboardingData((prev) => ({
-      ...prev,
-      city,
-    }));
+    // Pula direto para o passo final (que era o 4, agora visualmente será o 3)
     setStep(4);
     setError(null);
   };
+
+  // handleStep3 removido
 
   const uploadPhoto = async (uri: string, userId: string): Promise<string | null> => {
     try {
@@ -62,7 +71,6 @@ export const OnboardingScreen: React.FC = () => {
       const fileName = `${userId}/avatar_${Date.now()}.${ext}`;
 
       // Workaround for React Native + Supabase Storage upload
-      // Reads the file uri into a blob/buffer using fetch
       const result = await fetch(uri);
       const blob = await result.blob();
       const arrayBuffer = await new Response(blob).arrayBuffer();
@@ -76,7 +84,7 @@ export const OnboardingScreen: React.FC = () => {
 
       if (error) {
         console.error('❌ Erro no upload da foto:', error);
-        return null; // Falha silenciosa na foto, não bloqueia o fluxo
+        return null;
       }
 
       const { data: { publicUrl } } = supabase.storage
@@ -95,26 +103,11 @@ export const OnboardingScreen: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Validações básicas
-      if (!onboardingData.name.trim()) {
-        throw new Error('Nome é obrigatório');
-      }
-      if (!onboardingData.username.trim()) {
-        throw new Error('Username é obrigatório');
-      }
-      if (!onboardingData.city.trim()) {
-        throw new Error('Cidade é obrigatória');
-      }
+      if (!onboardingData.name.trim()) throw new Error('Nome é obrigatório');
+      if (!onboardingData.username.trim()) throw new Error('Username é obrigatório');
+      if (!user) throw new Error('Usuário não autenticado');
 
-      if (!user) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      console.log('✅ Finalizando onboarding com dados:', {
-        name: onboardingData.name,
-        username: onboardingData.username,
-        city: onboardingData.city,
-      });
+      console.log('✅ Finalizando onboarding...');
 
       let avatarUrl = null;
       if (onboardingData.photoUri) {
@@ -122,35 +115,22 @@ export const OnboardingScreen: React.FC = () => {
         avatarUrl = await uploadPhoto(onboardingData.photoUri, user.id);
       }
 
-      // Atualizar perfil do usuário
+      // Atualizar perfil
       await updateProfile({
         name: onboardingData.name.trim(),
         username: onboardingData.username.trim(),
-        city: onboardingData.city.trim(),
         notifications_enabled: preferences.notificationsEnabled,
         onboarding_complete: true,
         ...(avatarUrl && { avatar_url: avatarUrl }),
       });
 
-      console.log('✅ Onboarding concluído com sucesso!');
-
-      // Marcar onboarding como completo localmente
-      setOnboardingData((prev) => ({
-        ...prev,
-        notificationsEnabled: preferences.notificationsEnabled,
-      }));
-
-      // O RootNavigator deve detectar a mudança automaticamente e navegar
+      console.log('✅ Onboarding concluído!');
 
     } catch (error: any) {
       console.error('❌ Erro ao finalizar onboarding:', error);
-      const errorMessage = error?.message || 'Erro ao finalizar onboarding. Tente novamente.';
+      const errorMessage = error?.message || 'Erro ao finalizar onboarding.';
       setError(errorMessage);
-      Alert.alert(
-        'Erro',
-        errorMessage,
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Erro', errorMessage, [{ text: 'OK' }]);
     } finally {
       setLoading(false);
     }
@@ -162,10 +142,29 @@ export const OnboardingScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {step === 1 && <OnboardingStep1 onNext={handleStep1} loading={loading} />}
-      {step === 2 && <OnboardingStep2 onNext={handleStep2} onSkip={() => setStep(3)} loading={loading} />}
-      {step === 3 && <OnboardingStep3 onNext={handleStep3} loading={loading} />}
-      {step === 4 && <OnboardingStep4 onFinish={handleStep4} loading={loading} />}
+      {step === 1 && (
+        <OnboardingStep1
+          onNext={handleStep1}
+          onBack={handleBack}
+          loading={loading}
+        />
+      )}
+      {step === 2 && (
+        <OnboardingStep2
+          onNext={handleStep2}
+          onSkip={() => setStep(4)} // Pula para o step 4 (Notificações)
+          onBack={handleBack}
+          loading={loading}
+        />
+      )}
+      {/* Step 3 Removido */}
+      {step === 4 && (
+        <OnboardingStep4
+          onFinish={handleStep4}
+          onBack={() => setStep(2)} // Volta para o Step 2 (Foto)
+          loading={loading}
+        />
+      )}
     </View>
   );
 };
